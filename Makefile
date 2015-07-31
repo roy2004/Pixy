@@ -4,12 +4,13 @@ OBJECTS = Async.o\
           IOPoller.o\
           List.o\
           Logging.o\
+          Main.o\
           MemoryPool.o\
           RBTree.o\
           Runtime.o\
           Scheduler.o\
           Timer.o
-CPPFLAGS = -iquote Include -MMD -MT $@ -MF Build/$*.d
+CPPFLAGS = -iquote Include -MMD -MT $@ -MF Build/$*.d -D_GNU_SOURCE
 CFLAGS = -Wall -Wextra -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast -Werror
 ARFLAGS = rc
 

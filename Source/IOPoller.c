@@ -214,7 +214,7 @@ IOPoller_Tick(struct IOPoller *self, int timeout, struct Async *async)
         if ((evs[i].events & (IOEventFlags[0] | EPOLLERR | EPOLLHUP)) != 0) {
             struct ListItem *watchListItem;
 
-            FOR_EACH_LIST_ITEM_BACKWARD(watchListItem, &event->watchListHeads[0]) {
+            FOR_EACH_LIST_ITEM_FORWARD(watchListItem, &event->watchListHeads[0]) {
                 struct IOWatch *watch = CONTAINER_OF(watchListItem, struct IOWatch, listItem);
 
                 if (!Async_AddCall(async, watch->callback, watch->data)) {
@@ -226,7 +226,7 @@ IOPoller_Tick(struct IOPoller *self, int timeout, struct Async *async)
         if ((evs[i].events & (IOEventFlags[1] | EPOLLERR | EPOLLHUP)) != 0) {
             struct ListItem *watchListItem;
 
-            FOR_EACH_LIST_ITEM_BACKWARD(watchListItem, &event->watchListHeads[1]) {
+            FOR_EACH_LIST_ITEM_FORWARD(watchListItem, &event->watchListHeads[1]) {
                 struct IOWatch *watch = CONTAINER_OF(watchListItem, struct IOWatch, listItem);
 
                 if (!Async_AddCall(async, watch->callback, watch->data)) {
