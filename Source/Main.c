@@ -11,6 +11,7 @@
 int Main(int argc, char **argv);
 
 static void MainWrapper(any_t);
+static void Loop(void);
 
 
 struct Scheduler Scheduler;
@@ -24,8 +25,6 @@ main(int argc, char **argv)
     Scheduler_Initialize(&Scheduler);
     IOPoller_Initialize(&IOPoller);
     Timer_Initialize(&Timer);
-    struct Async async;
-    Async_Initialize(&async);
 
     struct {
         int argc;
@@ -37,6 +36,32 @@ main(int argc, char **argv)
     };
 
     Scheduler_CallCoroutine(&Scheduler, MainWrapper, (any_t)&context);
+    Loop();
+    Scheduler_Finalize(&Scheduler);
+    IOPoller_Finalize(&IOPoller);
+    Timer_Finalize(&Timer);
+    return context.status;
+}
+
+
+static void
+MainWrapper(any_t argument)
+{
+    struct {
+        int argc;
+        char **argv;
+        int status;
+    } *context = (void *)argument;
+
+    context->status = Main(context->argc, context->argv);
+}
+
+
+static void
+Loop(void)
+{
+    struct Async async;
+    Async_Initialize(&async);
 
     for (;;) {
         Scheduler_Tick(&Scheduler);
@@ -67,21 +92,4 @@ main(int argc, char **argv)
     }
 
     Async_Finalize(&async);
-    Scheduler_Finalize(&Scheduler);
-    IOPoller_Finalize(&IOPoller);
-    Timer_Finalize(&Timer);
-    return context.status;
-}
-
-
-static void
-MainWrapper(any_t argument)
-{
-    struct {
-        int argc;
-        char **argv;
-        int status;
-    } *context = (void *)argument;
-
-    context->status = Main(context->argc, context->argv);
 }
