@@ -1,7 +1,7 @@
 #include "Heap.h"
 
-#include <stdint.h>
 #include <stdlib.h>
+#include <limits.h>
 
 
 #define HEAP_SEGMENT_LENGTH 256u
