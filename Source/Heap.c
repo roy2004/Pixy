@@ -274,5 +274,6 @@ NextPowerOfTwo(unsigned int number)
         number |= number >> k;
     }
 
-    return ++number;
+    ++number;
+    return number;
 }

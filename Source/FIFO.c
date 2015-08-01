@@ -121,5 +121,6 @@ NextPowerOfTwo(size_t number)
         number |= number >> k;
     }
 
-    return ++number;
+    ++number;
+    return number;
 }
