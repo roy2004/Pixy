@@ -15,7 +15,7 @@ static void Heap_SiftNodeUp(struct Heap *, struct HeapNode **, int (*)(const str
 static void Heap_SiftNodeDown(struct Heap *, struct HeapNode **
                               , int (*)(const struct HeapNode *, const struct HeapNode *));
 
-static unsigned long NextPowerOfTwo(unsigned long);
+static unsigned int NextPowerOfTwo(unsigned int);
 
 
 void
@@ -264,26 +264,15 @@ Heap_SiftNodeDown(struct Heap *self, struct HeapNode **slotX
 }
 
 
-static unsigned long
-NextPowerOfTwo(unsigned long number)
+static unsigned int
+NextPowerOfTwo(unsigned int number)
 {
     --number;
-#if defined __i386__
-    number |= number >> 1;
-    number |= number >> 2;
-    number |= number >> 4;
-    number |= number >> 8;
-    number |= number >> 16;
-#elif defined __x86_64__
-    number |= number >> 1;
-    number |= number >> 2;
-    number |= number >> 4;
-    number |= number >> 8;
-    number |= number >> 16;
-    number |= number >> 32;
-#else
-#   error architecture not supported
-#endif
-    ++number;
-    return number;
+    int k;
+
+    for (k = 1; k < (int)sizeof number * CHAR_BIT; k *= 2u) {
+        number |= number >> k;
+    }
+
+    return ++number;
 }

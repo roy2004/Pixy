@@ -8,6 +8,10 @@ Output:
     B - 2
     A - 3
     B - 3
+    Wait 2 seconds...
+    Wait 2 seconds...
+    Done!
+    Done!
 */
 
 
@@ -38,4 +42,7 @@ Coroutine(any_t argument)
     Yield();
     printf("%c - 3\n", who);
     Yield();
+    puts("Wait 2 seconds...");
+    Sleep(2000);
+    puts("Done!");
 }

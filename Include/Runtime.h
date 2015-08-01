@@ -25,3 +25,5 @@ ssize_t RecvFrom(int fd, void *buffer, size_t bufferSize, int flags, struct sock
                  , socklen_t *addressLength, int timeout);
 ssize_t SendTo(int fd, const void *data, size_t dataSize, int flags, const struct sockaddr *address
                , socklen_t addressLength, int timeout);
+
+int Close(int fd);

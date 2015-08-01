@@ -4,7 +4,7 @@
 #include <string.h>
 
 
-static unsigned long NextPowerOfTwo(unsigned long);
+static size_t NextPowerOfTwo(size_t);
 
 
 void
@@ -94,26 +94,15 @@ LIFO_Read(struct LIFO *self, void *buffer, size_t bufferSize)
 }
 
 
-static unsigned long
-NextPowerOfTwo(unsigned long number)
+static size_t
+NextPowerOfTwo(size_t number)
 {
     --number;
-#if defined __i386__
-    number |= number >> 1;
-    number |= number >> 2;
-    number |= number >> 4;
-    number |= number >> 8;
-    number |= number >> 16;
-#elif defined __x86_64__
-    number |= number >> 1;
-    number |= number >> 2;
-    number |= number >> 4;
-    number |= number >> 8;
-    number |= number >> 16;
-    number |= number >> 32;
-#else
-#   error architecture not supported
-#endif
-    ++number;
-    return number;
+    int k;
+
+    for (k = 1; k < (int)sizeof number * CHAR_BIT; k *= 2u) {
+        number |= number >> k;
+    }
+
+    return ++number;
 }

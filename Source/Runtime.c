@@ -462,6 +462,20 @@ SendTo(int fd, const void *data, size_t dataSize, int flags, const struct sockad
 }
 
 
+int
+Close(int fd)
+{
+    IOPoller_ClearWatches(&IOPoller, fd);
+    int result;
+
+    do {
+        result = close(fd);
+    } while (result < 0 && errno == EINTR);
+
+    return result;
+}
+
+
 static void
 SleepCallback(any_t argument)
 {
