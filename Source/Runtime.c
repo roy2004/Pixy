@@ -110,11 +110,12 @@ Read(int fd, void *buffer, size_t bufferSize, int timeout)
         .bufferSize = bufferSize
     };
 
-    if (!IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOReadable, &context, ReadCallback1)) {
+    if (!IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOReadable, (any_t)&context
+                           , ReadCallback1)) {
         return -1;
     }
 
-    if (!Timer_SetTimeout(&Timer, &context.timeout, timeout, &context, ReadCallback2)) {
+    if (!Timer_SetTimeout(&Timer, &context.timeout, timeout, (any_t)&context, ReadCallback2)) {
         IOPoller_ClearWatch(&IOPoller, &context.ioWatch);
         return -1;
     }
@@ -155,11 +156,12 @@ Write(int fd, const void *data, size_t dataSize, int timeout)
         .dataSize = dataSize
     };
 
-    if (!IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOWritable, &context, WriteCallback1)) {
+    if (!IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOWritable, (any_t)&context
+                           , WriteCallback1)) {
         return -1;
     }
 
-    if (!Timer_SetTimeout(&Timer, &context.timeout, timeout, &context, WriteCallback2)) {
+    if (!Timer_SetTimeout(&Timer, &context.timeout, timeout, (any_t)&context, WriteCallback2)) {
         IOPoller_ClearWatch(&IOPoller, &context.ioWatch);
         return -1;
     }
@@ -209,12 +211,12 @@ Accept4(int fd, struct sockaddr *address, socklen_t *addressLength, int flags, i
         .flags = flags
     };
 
-    if (!IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOReadable, &context
+    if (!IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOReadable, (any_t)&context
                            , Accept4Callback1)) {
         return -1;
     }
 
-    if (!Timer_SetTimeout(&Timer, &context.timeout, timeout, &context, Accept4Callback2)) {
+    if (!Timer_SetTimeout(&Timer, &context.timeout, timeout, (any_t)&context, Accept4Callback2)) {
         IOPoller_ClearWatch(&IOPoller, &context.ioWatch);
         return -1;
     }
@@ -247,12 +249,12 @@ Connect(int fd, const struct sockaddr *address, socklen_t addressLength, int tim
         .fd = fd
     };
 
-    if (!IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOWritable, &context
+    if (!IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOWritable, (any_t)&context
                            , ConnectCallback1)) {
         return -1;
     }
 
-    if (!Timer_SetTimeout(&Timer, &context.timeout, timeout, &context, ConnectCallback2)) {
+    if (!Timer_SetTimeout(&Timer, &context.timeout, timeout, (any_t)&context, ConnectCallback2)) {
         IOPoller_ClearWatch(&IOPoller, &context.ioWatch);
         return -1;
     }
@@ -295,11 +297,12 @@ Recv(int fd, void *buffer, size_t bufferSize, int flags, int timeout)
         .flags = flags
     };
 
-    if (!IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOReadable, &context, RecvCallback1)) {
+    if (!IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOReadable, (any_t)&context
+                           , RecvCallback1)) {
         return -1;
     }
 
-    if (!Timer_SetTimeout(&Timer, &context.timeout, timeout, &context, RecvCallback2)) {
+    if (!Timer_SetTimeout(&Timer, &context.timeout, timeout, (any_t)&context, RecvCallback2)) {
         IOPoller_ClearWatch(&IOPoller, &context.ioWatch);
         return -1;
     }
@@ -342,11 +345,12 @@ Send(int fd, const void *data, size_t dataSize, int flags, int timeout)
         .flags = flags
     };
 
-    if (!IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOWritable, &context, SendCallback1)) {
+    if (!IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOWritable, (any_t)&context
+                           , SendCallback1)) {
         return -1;
     }
 
-    if (!Timer_SetTimeout(&Timer, &context.timeout, timeout, &context, SendCallback2)) {
+    if (!Timer_SetTimeout(&Timer, &context.timeout, timeout, (any_t)&context, SendCallback2)) {
         IOPoller_ClearWatch(&IOPoller, &context.ioWatch);
         return -1;
     }
@@ -394,12 +398,12 @@ RecvFrom(int fd, void *buffer, size_t bufferSize, int flags, struct sockaddr *ad
         .addressLength = addressLength
     };
 
-    if (!IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOReadable, &context
+    if (!IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOReadable, (any_t)&context
                            , RecvFromCallback1)) {
         return -1;
     }
 
-    if (!Timer_SetTimeout(&Timer, &context.timeout, timeout, &context, RecvFromCallback2)) {
+    if (!Timer_SetTimeout(&Timer, &context.timeout, timeout, (any_t)&context, RecvFromCallback2)) {
         IOPoller_ClearWatch(&IOPoller, &context.ioWatch);
         return -1;
     }
@@ -445,12 +449,12 @@ SendTo(int fd, const void *data, size_t dataSize, int flags, const struct sockad
         .flags = flags
     };
 
-    if (!IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOWritable, &context
+    if (!IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOWritable, (any_t)&context
                            , SendToCallback1)) {
         return -1;
     }
 
-    if (!Timer_SetTimeout(&Timer, &context.timeout, timeout, &context, SendToCallback2)) {
+    if (!Timer_SetTimeout(&Timer, &context.timeout, timeout, (any_t)&context, SendToCallback2)) {
         IOPoller_ClearWatch(&IOPoller, &context.ioWatch);
         return -1;
     }

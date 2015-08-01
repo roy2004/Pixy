@@ -4,7 +4,7 @@
 #include <limits.h>
 
 
-#define HEAP_SEGMENT_LENGTH 256u
+#define HEAP_SEGMENT_LENGTH 256
 
 
 static bool Heap_IncreaseSegments(struct Heap *);
@@ -53,7 +53,8 @@ bool
 Heap_ShrinkToFit(struct Heap *self)
 {
     assert(self != NULL);
-    int numberOfSegments = (self->numberOfNodes + HEAP_SEGMENT_LENGTH - 1) / HEAP_SEGMENT_LENGTH;
+    int numberOfSegments = (self->numberOfNodes + HEAP_SEGMENT_LENGTH - 1)
+                           / (unsigned int)HEAP_SEGMENT_LENGTH;
 
     if (self->numberOfSegments > numberOfSegments) {
         int i = self->numberOfSegments - 1;
@@ -63,7 +64,7 @@ Heap_ShrinkToFit(struct Heap *self)
         } while (--i >= numberOfSegments);
 
         self->numberOfSegments = numberOfSegments;
-        self->numberOfSlots = numberOfSegments * HEAP_SEGMENT_LENGTH;
+        self->numberOfSlots = numberOfSegments * (unsigned int)HEAP_SEGMENT_LENGTH;
     }
 
     int segmentTableLength = NextPowerOfTwo(numberOfSegments);
@@ -197,7 +198,8 @@ Heap_ExpandSegmentTable(struct Heap *self)
 static struct HeapNode **
 Heap_LocateSlot(const struct Heap *self, int slotNumber)
 {
-    return &self->segmentTable[slotNumber / HEAP_SEGMENT_LENGTH][slotNumber % HEAP_SEGMENT_LENGTH];
+    return &self->segmentTable[slotNumber / (unsigned int)HEAP_SEGMENT_LENGTH]
+                              [slotNumber % (unsigned int)HEAP_SEGMENT_LENGTH];
 }
 
 

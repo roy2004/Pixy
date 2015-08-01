@@ -11,7 +11,7 @@ OBJECTS = Async.o\
           Scheduler.o\
           Timer.o
 CPPFLAGS = -iquote Include -MMD -MT $@ -MF Build/$*.d -D_GNU_SOURCE
-CFLAGS = -std=c99 -Wall -Wextra -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast -Werror
+CFLAGS = -std=c99 -Wall -Wextra
 ARFLAGS = rc
 
 all: Build/Library.a
