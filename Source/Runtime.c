@@ -7,7 +7,6 @@
 #include "Scheduler.h"
 #include "IOPoller.h"
 #include "Timer.h"
-#include "Async.h"
 
 
 static void SleepCallback(any_t);
@@ -19,6 +18,10 @@ static void Accept4Callback1(any_t);
 static void Accept4Callback2(any_t);
 static void ConnectCallback1(any_t);
 static void ConnectCallback2(any_t);
+static void RecvCallback1(any_t);
+static void RecvCallback2(any_t);
+static void SendCallback1(any_t);
+static void SendCallback2(any_t);
 
 
 struct Scheduler Scheduler;
@@ -42,6 +45,13 @@ void
 Yield(void)
 {
     Scheduler_YieldCurrentFiber(&Scheduler);
+}
+
+
+void
+Exit(void)
+{
+    Scheduler_ExitCurrentFiber(&Scheduler);
 }
 
 
@@ -169,10 +179,14 @@ ReadFully(int fd, void *buffer, size_t bufferSize, int timeout)
             return -(i + 1);
         }
 
+        if (n == 0) {
+            break;
+        }
+
         i += n;
     } while (i < bufferSize);
 
-    return bufferSize;
+    return i;
 }
 
 
@@ -188,10 +202,14 @@ WriteFully(int fd, const void *data, size_t dataSize, int timeout)
             return -(i + 1);
         }
 
+        if (n == 0) {
+            break;
+        }
+
         i += n;
     } while (i < dataSize);
 
-    return dataSize;
+    return i;
 }
 
 
@@ -285,6 +303,146 @@ Connect(int fd, const struct sockaddr *address, socklen_t addressLength, int tim
     result = context.result;
     errno = context.errorNumber;
     return result;
+}
+
+
+ssize_t
+Recv(int fd, void *buffer, size_t bufferSize, int flags, int timeout)
+{
+    ssize_t numberOfBytes;
+
+    do {
+        numberOfBytes = recv(fd, buffer, bufferSize, flags);
+    } while (numberOfBytes < 0 && errno == EINTR);
+
+    if (numberOfBytes >= 0 || (errno != EAGAIN && errno != EWOULDBLOCK)) {
+        return numberOfBytes;
+    }
+
+    struct {
+        struct IOWatch ioWatch;
+        struct Timeout timeout;
+        struct Fiber *fiber;
+        int fd;
+        void *buffer;
+        size_t bufferSize;
+        int flags;
+        ssize_t numberOfBytes;
+        int errorNumber;
+    } context = {
+        .fiber = Scheduler_GetCurrentFiber(&Scheduler),
+        .fd = fd,
+        .buffer = buffer,
+        .bufferSize = bufferSize,
+        .flags = flags
+    };
+
+    if (!IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOReadable, &context, RecvCallback1)) {
+        return -1;
+    }
+
+    if (!Timer_SetTimeout(&Timer, &context.timeout, timeout, &context, RecvCallback2)) {
+        IOPoller_ClearWatch(&IOPoller, &context.ioWatch);
+        return -1;
+    }
+
+    Scheduler_SuspendCurrentFiber(&Scheduler);
+    numberOfBytes = context.numberOfBytes;
+    errno = context.errorNumber;
+    return numberOfBytes;
+}
+
+
+ssize_t
+Send(int fd, const void *data, size_t dataSize, int flags, int timeout)
+{
+    ssize_t numberOfBytes;
+
+    do {
+        numberOfBytes = send(fd, data, dataSize, flags);
+    } while (numberOfBytes < 0 && errno == EINTR);
+
+    if (numberOfBytes >= 0 || (errno != EAGAIN && errno != EWOULDBLOCK)) {
+        return numberOfBytes;
+    }
+
+    struct {
+        struct IOWatch ioWatch;
+        struct Timeout timeout;
+        struct Fiber *fiber;
+        int fd;
+        const void *data;
+        size_t dataSize;
+        int flags;
+        ssize_t numberOfBytes;
+        int errorNumber;
+    } context = {
+        .fiber = Scheduler_GetCurrentFiber(&Scheduler),
+        .fd = fd,
+        .data = data,
+        .dataSize = dataSize,
+        .flags = flags
+    };
+
+    if (!IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOWritable, &context, SendCallback1)) {
+        return -1;
+    }
+
+    if (!Timer_SetTimeout(&Timer, &context.timeout, timeout, &context, SendCallback2)) {
+        IOPoller_ClearWatch(&IOPoller, &context.ioWatch);
+        return -1;
+    }
+
+    Scheduler_SuspendCurrentFiber(&Scheduler);
+    numberOfBytes = context.numberOfBytes;
+    errno = context.errorNumber;
+    return numberOfBytes;
+}
+
+
+ssize_t
+RecvFully(int fd, void *buffer, size_t bufferSize, int flags, int timeout)
+{
+    size_t i = 0;
+
+    do {
+        ssize_t n = Recv(fd, (unsigned char *)buffer + i, bufferSize - i, flags, timeout);
+
+        if (n < 0) {
+            return -(i + 1);
+        }
+
+        if (n == 0) {
+            break;
+        }
+
+        i += n;
+    } while (i < bufferSize);
+
+    return i;
+}
+
+
+ssize_t
+SendFully(int fd, const void *data, size_t dataSize, int flags, int timeout)
+{
+    size_t i = 0;
+
+    do {
+        ssize_t n = Send(fd, (const unsigned char *)data + i, dataSize - i, flags, timeout);
+
+        if (n < 0) {
+            return -(i + 1);
+        }
+
+        if (n == 0) {
+            break;
+        }
+
+        i += n;
+    } while (i < dataSize);
+
+    return i;
 }
 
 
@@ -497,6 +655,116 @@ ConnectCallback2(any_t argument)
     } *context = (void *)argument;
 
     context->result = -1;
+    context->errorNumber = EINTR;
+    IOPoller_ClearWatch(&IOPoller, &context->ioWatch);
+    Scheduler_ResumeFiber(&Scheduler, context->fiber);
+}
+
+
+static void
+RecvCallback1(any_t argument)
+{
+    struct {
+        struct IOWatch ioWatch;
+        struct Timeout timeout;
+        struct Fiber *fiber;
+        int fd;
+        void *buffer;
+        size_t bufferSize;
+        int flags;
+        ssize_t numberOfBytes;
+        int errorNumber;
+    } *context = (void *)argument;
+
+    ssize_t numberOfBytes;
+
+    do {
+        numberOfBytes = recv(context->fd, context->buffer, context->bufferSize, context->flags);
+    } while (numberOfBytes < 0 && errno == EINTR);
+
+    if (numberOfBytes < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+        return;
+    }
+
+    context->numberOfBytes = numberOfBytes;
+    context->errorNumber = errno;
+    IOPoller_ClearWatch(&IOPoller, &context->ioWatch);
+    Timer_ClearTimeout(&Timer, &context->timeout);
+    Scheduler_ResumeFiber(&Scheduler, context->fiber);
+}
+
+
+static void
+RecvCallback2(any_t argument)
+{
+    struct {
+        struct IOWatch ioWatch;
+        struct Timeout timeout;
+        struct Fiber *fiber;
+        int fd;
+        void *buffer;
+        size_t bufferSize;
+        int flags;
+        ssize_t numberOfBytes;
+        int errorNumber;
+    } *context = (void *)argument;
+
+    context->numberOfBytes = -1;
+    context->errorNumber = EINTR;
+    IOPoller_ClearWatch(&IOPoller, &context->ioWatch);
+    Scheduler_ResumeFiber(&Scheduler, context->fiber);
+}
+
+
+static void
+SendCallback1(any_t argument)
+{
+    struct {
+        struct IOWatch ioWatch;
+        struct Timeout timeout;
+        struct Fiber *fiber;
+        int fd;
+        const void *data;
+        size_t dataSize;
+        int flags;
+        ssize_t numberOfBytes;
+        int errorNumber;
+    } *context = (void *)argument;
+
+    ssize_t numberOfBytes;
+
+    do {
+        numberOfBytes = send(context->fd, context->data, context->dataSize, context->flags);
+    } while (numberOfBytes < 0 && errno == EINTR);
+
+    if (numberOfBytes < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+        return;
+    }
+
+    context->numberOfBytes = numberOfBytes;
+    context->errorNumber = errno;
+    IOPoller_ClearWatch(&IOPoller, &context->ioWatch);
+    Timer_ClearTimeout(&Timer, &context->timeout);
+    Scheduler_ResumeFiber(&Scheduler, context->fiber);
+}
+
+
+static void
+SendCallback2(any_t argument)
+{
+    struct {
+        struct IOWatch ioWatch;
+        struct Timeout timeout;
+        struct Fiber *fiber;
+        int fd;
+        const void *data;
+        size_t dataSize;
+        int flags;
+        ssize_t numberOfBytes;
+        int errorNumber;
+    } *context = (void *)argument;
+
+    context->numberOfBytes = -1;
     context->errorNumber = EINTR;
     IOPoller_ClearWatch(&IOPoller, &context->ioWatch);
     Scheduler_ResumeFiber(&Scheduler, context->fiber);

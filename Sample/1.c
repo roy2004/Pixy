@@ -2,12 +2,12 @@
 $ cc 1.c -lpixy && ./a.out
 
 Output:
-    A says 1
-    B says 1
-    A says 2
-    B says 2
-    A says 3
-    B says 3
+    A - 1
+    B - 1
+    A - 2
+    B - 2
+    A - 3
+    B - 3
 */
 
 
@@ -32,10 +32,10 @@ static void
 Coroutine(any_t argument)
 {
     char who = (char)argument;
-    printf("%c says 1\n", who);
+    printf("%c - 1\n", who);
     Yield();
-    printf("%c says 2\n", who);
+    printf("%c - 2\n", who);
     Yield();
-    printf("%c says 3\n", who);
+    printf("%c - 3\n", who);
     Yield();
 }
