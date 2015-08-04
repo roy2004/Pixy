@@ -141,7 +141,9 @@ ThreadPool_Worker(struct ThreadPool *self)
         struct ListItem *workListItem = List_GetFront(&self->workListHead);
 
         if (workListItem == &self->stopSignal) {
+#if __NUMBER_OF_WORKERS >= 2
             xpthread_cond_signal(&self->condition);
+#endif
             xpthread_mutex_unlock(&self->mutex);
             break;
         }
@@ -149,7 +151,9 @@ ThreadPool_Worker(struct ThreadPool *self)
         ListItem_Remove(workListItem);
 
         if (!List_IsEmpty(&self->workListHead)) {
+#if __NUMBER_OF_WORKERS >= 2
             xpthread_cond_signal(&self->condition);
+#endif
         }
 
         xpthread_mutex_unlock(&self->mutex);

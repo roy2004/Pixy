@@ -12,7 +12,9 @@ OBJECTS = Async.o\
           ThreadPool.o\
           Timer.o
 CPPFLAGS = -iquote Include -MMD -MT $@ -MF Build/$*.d -D_GNU_SOURCE
+# CPPFLAGS += -DNDEBUG
 CFLAGS = -std=c99 -Wall -Wextra -Werror
+# CFLAGS += -O2
 ARFLAGS = rc
 
 all: Build/Library.a

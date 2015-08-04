@@ -1,4 +1,4 @@
 #include "Logging.h"
 
 
-enum LoggingLevel LoggingLevel = LoggingInformation;
+enum LoggingLevel __LoggingLevel = LoggingInformation;

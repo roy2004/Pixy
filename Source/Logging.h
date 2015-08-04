@@ -5,6 +5,7 @@
 #include <stdlib.h>
 
 #include "Base.h"
+#include "Atomic.h"
 
 
 #define LOG_INFORMATION(FORMAT, ...) \
@@ -22,7 +23,7 @@
 
 #define __LOG(LEVEL, FORMAT, ...)                                                      \
     do {                                                                               \
-        if (Logging##LEVEL < LoggingLevel) {                                           \
+        if (Logging##LEVEL < GetLoggingLevel()) {                                      \
             break;                                                                     \
         }                                                                              \
                                                                                        \
@@ -40,4 +41,24 @@ enum LoggingLevel
 };
 
 
-enum LoggingLevel LoggingLevel;
+static inline void SetLoggingLevel(enum LoggingLevel);
+static inline enum LoggingLevel GetLoggingLevel(void);
+
+
+enum LoggingLevel __LoggingLevel;
+
+
+static inline void
+SetLoggingLevel(enum LoggingLevel loggingLevel)
+{
+    ATOMIC_EXCHANGE(__LoggingLevel, loggingLevel);
+}
+
+
+static inline enum LoggingLevel
+GetLoggingLevel(void)
+{
+    enum LoggingLevel loggingLevel = 0;
+    ATOMIC_ADD(__LoggingLevel, loggingLevel);
+    return loggingLevel;
+}

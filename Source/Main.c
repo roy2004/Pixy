@@ -32,7 +32,7 @@ main(int argc, char **argv)
 
     if (!ThreadPool_Initialize(&ThreadPool, &IOPoller)) {
         assert(errno == ENOMEM);
-        LOG_FATAL_ERROR("Failed to initialize thread pool: %s", strerror(errno));
+        LOG_FATAL_ERROR("`ThreadPool_Initialize()` failed: %s", strerror(errno));
     }
 
     ThreadPool_Start(&ThreadPool);
