@@ -1,5 +1,5 @@
 /*
-$ cc 2.c -lpixy && ./a.out
+$ cc 2.c -lpixy -lpthread && ./a.out
 
 Output:
     Hello!
@@ -44,7 +44,7 @@ Reader(any_t argument)
             break;
         }
 
-        printf("%.*s\n", numberOfBytes, buffer);
+        printf("%.*s\n", (int)numberOfBytes, buffer);
     }
 
     Close(fd);

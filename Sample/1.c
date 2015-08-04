@@ -1,5 +1,5 @@
 /*
-$ cc 1.c -lpixy && ./a.out
+$ cc 1.c -lpixy -lpthread && ./a.out
 
 Output:
     A - 1

@@ -7,6 +7,7 @@
 #include "Scheduler.h"
 #include "IOPoller.h"
 #include "Timer.h"
+#include "ThreadPool.h"
 
 
 static void SleepCallback(any_t);
@@ -26,11 +27,15 @@ static void RecvFromCallback1(any_t);
 static void RecvFromCallback2(any_t);
 static void SendToCallback1(any_t);
 static void SendToCallback2(any_t);
+static void DoWork(void (*)(any_t), any_t);
+static void DoWorkCallback(any_t);
+static void GetAddrInfoWrapper(any_t);
 
 
 struct Scheduler Scheduler;
 struct IOPoller IOPoller;
 struct Timer Timer;
+struct ThreadPool ThreadPool;
 
 
 bool
@@ -480,6 +485,28 @@ Close(int fd)
 }
 
 
+int
+GetAddrInfo(const char *hostName, const char *serviceName, const struct addrinfo *hints
+            , struct addrinfo **result)
+{
+    struct {
+        const char *hostName;
+        const char *serviceName;
+        const struct addrinfo *hints;
+        struct addrinfo **result;
+        int errorCode;
+    } context = {
+        .hostName = hostName,
+        .serviceName = serviceName,
+        .hints = hints,
+        .result = result
+    };
+
+    DoWork(GetAddrInfoWrapper, (any_t)&context);
+    return context.errorCode;
+}
+
+
 static void
 SleepCallback(any_t argument)
 {
@@ -922,4 +949,37 @@ SendToCallback2(any_t argument)
     context->errorNumber = EINTR;
     IOPoller_ClearWatch(&IOPoller, &context->ioWatch);
     Scheduler_ResumeFiber(&Scheduler, context->fiber);
+}
+
+
+static void
+DoWork(void (*procedure)(any_t), any_t argument)
+{
+    struct Work work;
+    ThreadPool_PostWork(&ThreadPool, &work, procedure, argument
+                        , (any_t)Scheduler_GetCurrentFiber(&Scheduler), DoWorkCallback);
+    Scheduler_SuspendCurrentFiber(&Scheduler);
+}
+
+
+static void
+DoWorkCallback(any_t argument)
+{
+    Scheduler_ResumeFiber(&Scheduler, (struct Fiber *)argument);
+}
+
+
+static void
+GetAddrInfoWrapper(any_t argument)
+{
+    struct {
+        const char *hostName;
+        const char *serviceName;
+        const struct addrinfo *hints;
+        struct addrinfo **result;
+        int errorCode;
+    } context = (void *)argument;
+
+    context->errorCode = getaddrinfo(context->hostName, context->serviceName, context->hints
+                                     , context->result);
 }

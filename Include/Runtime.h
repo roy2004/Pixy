@@ -3,6 +3,7 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <netdb.h>
 
 #include "Base.h"
 
@@ -27,3 +28,6 @@ ssize_t SendTo(int fd, const void *data, size_t dataSize, int flags, const struc
                , socklen_t addressLength, int timeout);
 
 int Close(int fd);
+
+int GetAddrInfo(const char *hostName, const char *serviceName, const struct addrinfo *hints
+                , struct addrinfo **result);
