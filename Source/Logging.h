@@ -8,6 +8,13 @@
 #include "Atomic.h"
 
 
+#ifdef NDEBUG
+#define LOG_DEBUG(FORMAT, ...)
+#else
+#define LOG_DEBUG(FORMAT, ...) \
+    __LOG(Debug, FORMAT, ##__VA_ARGS__)
+#endif
+
 #define LOG_INFORMATION(FORMAT, ...) \
     __LOG(Information, FORMAT, ##__VA_ARGS__)
 
@@ -17,23 +24,24 @@
 #define LOG_ERROR(FORMAT, ...) \
     __LOG(Error, FORMAT, ##__VA_ARGS__)
 
-#define LOG_FATAL_ERROR(FORMAT, ...) \
+#define LOG_FATAL_ERROR(FORMAT, ...)          \
     __LOG(FatalError, FORMAT, ##__VA_ARGS__); \
     abort()
 
-#define __LOG(LEVEL, FORMAT, ...)                                                      \
-    do {                                                                               \
-        if (Logging##LEVEL < GetLoggingLevel()) {                                      \
-            break;                                                                     \
-        }                                                                              \
-                                                                                       \
-        fprintf(stderr, #LEVEL ": " __FILE__ "(" STRINGIZE(__LINE__) "): " FORMAT "\n" \
-                , ##__VA_ARGS__);                                                      \
+#define __LOG(LEVEL, FORMAT, ...)                                                               \
+    do {                                                                                        \
+        if (Logging##LEVEL < GetLoggingLevel()) {                                               \
+            break;                                                                              \
+        }                                                                                       \
+                                                                                                \
+        fprintf(stderr, "(Pixy) " #LEVEL ": " __FILE__ ":" STRINGIZE(__LINE__) ": " FORMAT "\n" \
+                , ##__VA_ARGS__);                                                               \
     } while (false)
 
 
 enum LoggingLevel
 {
+    LoggingDebug,
     LoggingInformation,
     LoggingWarning,
     LoggingError,

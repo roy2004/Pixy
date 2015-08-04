@@ -211,7 +211,7 @@ Scheduler_RunFiber(struct Scheduler *self, struct Fiber *fiber)
             : "r"(fiber->stack), "D"(self), "S"(fiber), "r"(Scheduler_FiberStart)
             : "memory"
 #else
-#   error architecture not supported
+#error architecture not supported
 #endif
         );
     } else {
@@ -249,7 +249,7 @@ AllocateFiber(void)
     fiber = (struct Fiber *)((unsigned char *)fiber + FIBER_SIZE - sizeof *fiber);
     fiber->stack = fiber;
 #else
-#   error architecture not supported
+#error architecture not supported
 #endif
     return fiber;
 }
@@ -261,7 +261,7 @@ FreeFiber(struct Fiber *fiber)
 #if defined __i386__ || defined __x86_64__
     fiber = (struct Fiber *)((unsigned char *)fiber + sizeof *fiber - FIBER_SIZE);
 #else
-#   error architecture not supported
+#error architecture not supported
 #endif
     free(fiber);
 }

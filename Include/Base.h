@@ -24,5 +24,5 @@
 #if defined __i386__ || defined __x86_64__
 typedef unsigned long any_t;
 #else
-#   error architecture not supported
+#error architecture not supported
 #endif
