@@ -27,7 +27,7 @@ struct ThreadPool
 struct Work
 {
     struct ListItem listItem;
-    void (*procedure)(any_t);
+    void (*function)(any_t);
     any_t argument;
     any_t data;
     void (*callback)(any_t);

@@ -139,6 +139,6 @@ static void
 xclock_gettime(clockid_t clock_id, struct timespec *tp)
 {
     if (clock_gettime(clock_id, tp) < 0) {
-        LOG_FATAL_ERROR("`clock_gettime` failed: %s", strerror(errno));
+        LOG_FATAL_ERROR("`clock_gettime()` failed: %s", strerror(errno));
     }
 }

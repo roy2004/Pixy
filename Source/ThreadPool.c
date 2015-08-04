@@ -12,7 +12,6 @@
 static void ThreadPool_InsertWorkListItem(struct ThreadPool *, struct ListItem *);
 static void ThreadPool_Worker(struct ThreadPool *);
 
-static void SetNonBlocking(int);
 static void WorkerCallback(any_t);
 static void *ThreadStart(void *);
 
@@ -40,7 +39,8 @@ ThreadPool_Initialize(struct ThreadPool *self, struct IOPoller *ioPoller)
     assert(ioPoller != NULL);
     int fds[2];
     xpipe(fds);
-    SetNonBlocking(fds[0]);
+    xfcntl(fds[0], F_SETFL, xfcntl(fds[0], F_GETFL, 0) | O_NONBLOCK);
+    xfcntl(fds[1], F_SETPIPE_SZ, 4096 * sizeof(struct Work *));
 
     if (!IOPoller_SetWatch(ioPoller, &self->ioWatch, fds[0], IOReadable, (any_t)self
                            , WorkerCallback)) {
@@ -99,14 +99,14 @@ ThreadPool_Stop(struct ThreadPool *self)
 
 
 void
-ThreadPool_PostWork(struct ThreadPool *self, struct Work *work, void (*procedure)(any_t)
+ThreadPool_PostWork(struct ThreadPool *self, struct Work *work, void (*function)(any_t)
                     , any_t argument, any_t data, void (*callback)(any_t))
 {
     assert(self != NULL);
     assert(work != NULL);
-    assert(procedure != NULL);
+    assert(function != NULL);
     assert(callback != NULL);
-    work->procedure = procedure;
+    work->function = function;
     work->argument = argument;
     work->data = data;
     work->callback = callback;
@@ -154,16 +154,9 @@ ThreadPool_Worker(struct ThreadPool *self)
 
         xpthread_mutex_unlock(&self->mutex);
         struct Work *work = CONTAINER_OF(workListItem, struct Work, listItem);
-        work->procedure(work->argument);
+        work->function(work->argument);
         xwrite(self->fds[1], &work, sizeof work);
     }
-}
-
-
-static void
-SetNonBlocking(int fd)
-{
-    xfcntl(fd, F_SETFL, xfcntl(fd, F_GETFL, 0) | O_NONBLOCK);
 }
 
 
@@ -193,7 +186,7 @@ static void
 xpipe(int fildes[2])
 {
     if (pipe(fildes) < 0) {
-        LOG_FATAL_ERROR("`pipe` failed: %s", strerror(errno));
+        LOG_FATAL_ERROR("`pipe()` failed: %s", strerror(errno));
     }
 }
 
@@ -208,7 +201,7 @@ xclose(int fd)
     } while (res < 0 && errno == EINTR);
 
     if (res < 0) {
-        LOG_ERROR("`close` failed: %s", strerror(errno));
+        LOG_ERROR("`close()` failed: %s", strerror(errno));
     }
 }
 
@@ -223,7 +216,7 @@ xfcntl(int fd, int cmd, int arg)
     } while (res < 0 && errno == EINTR);
 
     if (res < 0) {
-        LOG_FATAL_ERROR("`fcntl` failed: %s", strerror(errno));
+        LOG_FATAL_ERROR("`fcntl()` failed: %s", strerror(errno));
     }
 
     return res;
@@ -240,7 +233,7 @@ xread(int fd, void *buf, size_t count)
     } while (nbytes < 0 && errno == EINTR);
 
     if (nbytes < 0) {
-        LOG_FATAL_ERROR("`read` failed: %s", strerror(errno));
+        LOG_FATAL_ERROR("`read()` failed: %s", strerror(errno));
     }
 
     return nbytes;
@@ -257,7 +250,7 @@ xwrite(int fd, const void *buf, size_t count)
     } while (nbytes < 0 && errno == EINTR);
 
     if (nbytes < 0) {
-        LOG_FATAL_ERROR("`write` failed: %s", strerror(errno));
+        LOG_FATAL_ERROR("`write()` failed: %s", strerror(errno));
     }
 
     return nbytes;
@@ -268,7 +261,7 @@ static void
 xpthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr)
 {
     if (pthread_mutex_init(mutex, attr) < 0) {
-        LOG_FATAL_ERROR("`pthread_mutex_init` failed: %s", strerror(errno));
+        LOG_FATAL_ERROR("`pthread_mutex_init()` failed: %s", strerror(errno));
     }
 }
 
@@ -277,7 +270,7 @@ static void
 xpthread_mutex_destroy(pthread_mutex_t *mutex)
 {
     if (pthread_mutex_destroy(mutex) < 0) {
-        LOG_FATAL_ERROR("`pthread_mutex_destroy` failed: %s", strerror(errno));
+        LOG_FATAL_ERROR("`pthread_mutex_destroy()` failed: %s", strerror(errno));
     }
 }
 
@@ -286,7 +279,7 @@ static void
 xpthread_mutex_lock(pthread_mutex_t *mutex)
 {
     if (pthread_mutex_lock(mutex) < 0) {
-        LOG_FATAL_ERROR("`pthread_mutex_lock` failed: %s", strerror(errno));
+        LOG_FATAL_ERROR("`pthread_mutex_lock()` failed: %s", strerror(errno));
     }
 }
 
@@ -295,7 +288,7 @@ static void
 xpthread_mutex_unlock(pthread_mutex_t *mutex)
 {
     if (pthread_mutex_unlock(mutex) < 0) {
-        LOG_FATAL_ERROR("`pthread_mutex_unlock` failed: %s", strerror(errno));
+        LOG_FATAL_ERROR("`pthread_mutex_unlock()` failed: %s", strerror(errno));
     }
 }
 
@@ -304,7 +297,7 @@ static void
 xpthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr)
 {
     if (pthread_cond_init(cond, attr) < 0) {
-        LOG_FATAL_ERROR("`pthread_cond_init` failed: %s", strerror(errno));
+        LOG_FATAL_ERROR("`pthread_cond_init()` failed: %s", strerror(errno));
     }
 }
 
@@ -313,7 +306,7 @@ static void
 xpthread_cond_destroy(pthread_cond_t *cond)
 {
     if (pthread_cond_destroy(cond) < 0) {
-        LOG_FATAL_ERROR("`pthread_cond_destroy` failed: %s", strerror(errno));
+        LOG_FATAL_ERROR("`pthread_cond_destroy()` failed: %s", strerror(errno));
     }
 }
 
@@ -322,7 +315,7 @@ static void
 xpthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
 {
     if (pthread_cond_wait(cond, mutex) < 0) {
-        LOG_FATAL_ERROR("`pthread_cond_wait` failed: %s", strerror(errno));
+        LOG_FATAL_ERROR("`pthread_cond_wait()` failed: %s", strerror(errno));
     }
 }
 
@@ -331,7 +324,7 @@ static void
 xpthread_cond_signal(pthread_cond_t *cond)
 {
     if (pthread_cond_signal(cond) < 0) {
-        LOG_FATAL_ERROR("`pthread_cond_signal` failed: %s", strerror(errno));
+        LOG_FATAL_ERROR("`pthread_cond_signal()` failed: %s", strerror(errno));
     }
 }
 
@@ -341,7 +334,7 @@ xpthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_rou
                 , void *arg)
 {
     if (pthread_create(thread, attr, start_routine, arg) < 0) {
-        LOG_FATAL_ERROR("`pthread_create` failed: %s", strerror(errno));
+        LOG_FATAL_ERROR("`pthread_create()` failed: %s", strerror(errno));
     }
 }
 
@@ -350,6 +343,6 @@ static void
 xpthread_join(pthread_t thread, void **value_ptr)
 {
     if (pthread_join(thread, value_ptr) < 0) {
-        LOG_FATAL_ERROR("`pthread_join` failed: %s", strerror(errno));
+        LOG_FATAL_ERROR("`pthread_join()` failed: %s", strerror(errno));
     }
 }

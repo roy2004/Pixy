@@ -953,10 +953,10 @@ SendToCallback2(any_t argument)
 
 
 static void
-DoWork(void (*procedure)(any_t), any_t argument)
+DoWork(void (*function)(any_t), any_t argument)
 {
     struct Work work;
-    ThreadPool_PostWork(&ThreadPool, &work, procedure, argument
+    ThreadPool_PostWork(&ThreadPool, &work, function, argument
                         , (any_t)Scheduler_GetCurrentFiber(&Scheduler), DoWorkCallback);
     Scheduler_SuspendCurrentFiber(&Scheduler);
 }
@@ -978,7 +978,7 @@ GetAddrInfoWrapper(any_t argument)
         const struct addrinfo *hints;
         struct addrinfo **result;
         int errorCode;
-    } context = (void *)argument;
+    } *context = (void *)argument;
 
     context->errorCode = getaddrinfo(context->hostName, context->serviceName, context->hints
                                      , context->result);

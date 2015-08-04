@@ -15,7 +15,7 @@ struct Async
 
 struct __AsyncCall
 {
-    void (*procedure)(any_t);
+    void (*function)(any_t);
     any_t argument;
 };
 
@@ -28,13 +28,13 @@ void Async_DispatchCalls(struct Async *);
 
 
 static inline bool
-Async_AddCall(struct Async *self, void (*procedure)(any_t), any_t argument)
+Async_AddCall(struct Async *self, void (*function)(any_t), any_t argument)
 {
     assert(self != NULL);
-    assert(procedure != NULL);
+    assert(function != NULL);
 
     struct __AsyncCall call = {
-        .procedure = procedure,
+        .function = function,
         .argument = argument
     };
 
