@@ -9,9 +9,10 @@ OBJECTS = Async.o\
           RBTree.o\
           Runtime.o\
           Scheduler.o\
+          ThreadPool.o\
           Timer.o
 CPPFLAGS = -iquote Include -MMD -MT $@ -MF Build/$*.d -D_GNU_SOURCE
-CFLAGS = -std=c99 -Wall -Wextra
+CFLAGS = -std=c99 -Wall -Wextra -Werror
 ARFLAGS = rc
 
 all: Build/Library.a

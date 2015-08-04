@@ -26,7 +26,7 @@ Async_DispatchCalls(struct Async *self)
     ptrdiff_t i;
 
     for (i = 0; i < n; ++i) {
-        calls[i].function(calls[i].argument);
+        calls[i].procedure(calls[i].argument);
     }
 
     FIFO_ClearData(&self->callFIFO);

@@ -203,7 +203,7 @@ IOPoller_Tick(struct IOPoller *self, int timeout, struct Async *async)
             return false;
         }
 
-        LOG_FATAL_ERROR("Call `epoll_wait` failed: %s", strerror(errno));
+        LOG_FATAL_ERROR("`epoll_wait` failed: %s", strerror(errno));
     }
 
     int i;
@@ -261,7 +261,7 @@ xepoll_create1(int flags)
     int fd = epoll_create1(flags);
 
     if (fd < 0) {
-        LOG_FATAL_ERROR("Call `epoll_create1` failed: %s", strerror(errno));
+        LOG_FATAL_ERROR("`epoll_create1` failed: %s", strerror(errno));
     }
 
     return fd;
@@ -271,22 +271,22 @@ xepoll_create1(int flags)
 static void
 xclose(int fd)
 {
-    int result;
+    int res;
 
     do {
-        result = close(fd);
-    } while (result < 0 && errno == EINTR);
+        res = close(fd);
+    } while (res < 0 && errno == EINTR);
 
-    if (result < 0) {
-        LOG_ERROR("Call `close` failed: %s", strerror(errno));
+    if (res < 0) {
+        LOG_ERROR("`close` failed: %s", strerror(errno));
     }
 }
 
 
 static void
-xepoll_ctl(int epfd, int op, int fd, struct epoll_event *ev)
+xepoll_ctl(int epfd, int op, int fd, struct epoll_event *event)
 {
-    if (epoll_ctl(epfd, op, fd, ev) < 0) {
-        LOG_FATAL_ERROR("Call `epoll_ctl` failed: %s", strerror(errno));
+    if (epoll_ctl(epfd, op, fd, event) < 0) {
+        LOG_FATAL_ERROR("`epoll_ctl` failed: %s", strerror(errno));
     }
 }
