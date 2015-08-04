@@ -17,12 +17,12 @@ struct Scheduler
     struct Fiber *runningFiber;
     struct ListItem readyFiberListHead;
     struct ListItem deadFiberListHead;
-    unsigned int fiberCount;
+    int fiberCount;
 };
 
 
 static inline struct Fiber *Scheduler_GetCurrentFiber(const struct Scheduler *);
-static inline unsigned int Scheduler_GetFiberCount(const struct Scheduler *);
+static inline int Scheduler_GetFiberCount(const struct Scheduler *);
 
 void Scheduler_Initialize(struct Scheduler *);
 void Scheduler_Finalize(const struct Scheduler *);
@@ -42,7 +42,7 @@ Scheduler_GetCurrentFiber(const struct Scheduler *self)
 }
 
 
-static inline unsigned int
+static inline int
 Scheduler_GetFiberCount(const struct Scheduler *self)
 {
     assert(self != NULL);

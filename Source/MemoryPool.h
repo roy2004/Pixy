@@ -8,7 +8,7 @@
 struct MemoryPool
 {
     size_t blockSize;
-    unsigned int numberOfSlotsPerChunk;
+    int numberOfSlotsPerChunk;
     struct ListItem usableChunkListHead;
     struct ListItem unusableChunkListHead;
 };

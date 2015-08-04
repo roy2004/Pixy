@@ -13,7 +13,7 @@ struct MemoryChunk
 {
     struct ListItem listItem;
     void **freeSlot;
-    unsigned int numberOfFreeSlots;
+    int numberOfFreeSlots;
 };
 
 
