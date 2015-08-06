@@ -8,15 +8,16 @@
 
 struct LIFO
 {
-    unsigned char *buffer;
-    size_t bufferSize;
-    ptrdiff_t i;
+    unsigned char *base;
+    size_t baseSize;
+    ptrdiff_t rwIndex;
 };
 
 
-static inline void *LIFO_GetData(const struct LIFO *);
+static inline const void *LIFO_GetData(const struct LIFO *);
 static inline size_t LIFO_GetDataSize(const struct LIFO *);
-static inline void LIFO_ClearData(struct LIFO *);
+static inline void *LIFO_GetBuffer(const struct LIFO *);
+static inline size_t LIFO_GetBufferSize(const struct LIFO *);
 
 void LIFO_Initialize(struct LIFO *);
 void LIFO_Finalize(const struct LIFO *);
@@ -29,7 +30,7 @@ static inline void *
 LIFO_GetData(const struct LIFO *self)
 {
     assert(self != NULL);
-    return self->buffer;
+    return self->base;
 }
 
 
@@ -37,13 +38,21 @@ static inline size_t
 LIFO_GetDataSize(const struct LIFO *self)
 {
     assert(self != NULL);
-    return self->i;
+    return self->rwIndex;
 }
 
 
-static inline void
-LIFO_ClearData(struct LIFO *self)
+static inline void *
+LIFO_GetBuffer(const struct LIFO *self)
 {
     assert(self != NULL);
-    self->i = 0;
+    return self->base + self->rwIndex;
+}
+
+
+static inline size_t
+LIFO_GetBufferSize(const struct LIFO *self)
+{
+    assert(self != NULL);
+    return self->baseSize - self->rwIndex;
 }

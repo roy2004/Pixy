@@ -33,7 +33,9 @@ clean:
 	rm -f Build/*
 
 install: all
+	mkdir -p /usr/local/lib
 	cp -T Build/Library.a /usr/local/lib/libpixy.a
+	mkdir -p /usr/local/include
 	cp -r -T Include /usr/local/include/Pixy
 
 uninstall:

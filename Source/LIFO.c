@@ -12,16 +12,16 @@ void
 LIFO_Initialize(struct LIFO *self)
 {
     assert(self != NULL);
-    self->buffer = NULL;
-    self->bufferSize = 0;
-    self->i = 0;
+    self->base = NULL;
+    self->baseSize = 0;
+    self->rwIndex = 0;
 }
 
 
 void LIFO_Finalize(const struct LIFO *self)
 {
     assert(self != NULL);
-    free(self->buffer);
+    free(self->base);
 }
 
 
@@ -29,25 +29,25 @@ bool
 LIFO_ShrinkToFit(struct LIFO *self)
 {
     assert(self != NULL);
-    size_t bufferSize = NextPowerOfTwo(self->i);
+    size_t baseSize = NextPowerOfTwo(self->rwIndex);
 
-    if (self->bufferSize == bufferSize) {
+    if (self->baseSize == baseSize) {
         return true;
     }
 
-    if (bufferSize == 0) {
-        free(self->buffer);
-        self->buffer = NULL;
-        self->bufferSize = 0;
+    if (baseSize == 0) {
+        free(self->base);
+        self->base = NULL;
+        self->baseSize = 0;
     } else {
-        unsigned char *buffer = realloc(self->buffer, bufferSize);
+        unsigned char *base = realloc(self->base, baseSize);
 
-        if (buffer == NULL) {
+        if (base == NULL) {
             return false;
         }
 
-        self->buffer = buffer;
-        self->bufferSize = bufferSize;
+        self->base = base;
+        self->baseSize = baseSize;
     }
 
     return true;
@@ -58,22 +58,24 @@ bool
 LIFO_Write(struct LIFO *self, const void *data, size_t dataSize)
 {
     assert(self != NULL);
-    assert(data != NULL || dataSize == 0);
 
-    if (self->bufferSize < self->i + dataSize) {
-        size_t bufferSize = NextPowerOfTwo(self->i + dataSize);
-        unsigned char *buffer = realloc(self->buffer, bufferSize);
+    if (self->baseSize < self->rwIndex + dataSize) {
+        size_t baseSize = NextPowerOfTwo(self->rwIndex + dataSize);
+        unsigned char *base = realloc(self->base, baseSize);
 
-        if (buffer == NULL) {
+        if (base == NULL) {
             return false;
         }
 
-        self->buffer = buffer;
-        self->bufferSize = bufferSize;
+        self->base = base;
+        self->baseSize = baseSize;
     }
 
-    memcpy(self->buffer + self->i, data, dataSize);
-    self->i += dataSize;
+    if (data != NULL) {
+        memcpy(self->base + self->rwIndex, data, dataSize);
+    }
+
+    self->rwIndex += dataSize;
     return true;
 }
 
@@ -82,15 +84,17 @@ size_t
 LIFO_Read(struct LIFO *self, void *buffer, size_t bufferSize)
 {
     assert(self != NULL);
-    assert(buffer != NULL || bufferSize == 0);
-    size_t dataSize = self->i;
+    size_t dataSize = self->rwIndex;
 
     if (dataSize > bufferSize) {
         dataSize = bufferSize;
     }
 
-    memcpy(buffer, self->buffer + self->i - dataSize, dataSize);
-    self->i -= dataSize;
+    if (buffer != NULL) {
+        memcpy(buffer, self->base + self->rwIndex - dataSize, dataSize);
+    }
+
+    self->rwIndex -= dataSize;
     return dataSize;
 }
 

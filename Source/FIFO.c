@@ -12,10 +12,10 @@ void
 FIFO_Initialize(struct FIFO *self)
 {
     assert(self != NULL);
-    self->buffer = NULL;
-    self->bufferSize = 0;
-    self->i = 0;
-    self->j = 0;
+    self->base = NULL;
+    self->baseSize = 0;
+    self->rIndex = 0;
+    self->wIndex = 0;
 }
 
 
@@ -23,7 +23,7 @@ void
 FIFO_Finalize(const struct FIFO *self)
 {
     assert(self != NULL);
-    free(self->buffer);
+    free(self->base);
 }
 
 
@@ -32,31 +32,31 @@ FIFO_ShrinkToFit(struct FIFO *self)
 {
     assert(self != NULL);
 
-    if (self->i >= 1) {
-        memmove(self->buffer, self->buffer + self->i, self->j - self->i);
-        self->j -= self->i;
-        self->i = 0;
+    if (self->rIndex >= 1) {
+        memmove(self->base, self->base + self->rIndex, self->wIndex - self->rIndex);
+        self->wIndex -= self->rIndex;
+        self->rIndex = 0;
     }
 
-    size_t bufferSize = NextPowerOfTwo(self->j);
+    size_t baseSize = NextPowerOfTwo(self->wIndex);
 
-    if (self->bufferSize == bufferSize) {
+    if (self->baseSize == baseSize) {
         return true;
     }
 
-    if (bufferSize == 0) {
-        free(self->buffer);
-        self->buffer = NULL;
-        self->bufferSize = 0;
+    if (baseSize == 0) {
+        free(self->base);
+        self->base = NULL;
+        self->baseSize = 0;
     } else {
-        unsigned char *buffer = realloc(self->buffer, bufferSize);
+        unsigned char *base = realloc(self->base, baseSize);
 
-        if (buffer == NULL) {
+        if (base == NULL) {
             return false;
         }
 
-        self->buffer = buffer;
-        self->bufferSize = bufferSize;
+        self->base = base;
+        self->baseSize = baseSize;
     }
 
     return true;
@@ -67,22 +67,24 @@ bool
 FIFO_Write(struct FIFO *self, const void *data, size_t dataSize)
 {
     assert(self != NULL);
-    assert(data != NULL || dataSize == 0);
 
-    if (self->bufferSize < self->j + dataSize) {
-        size_t bufferSize = NextPowerOfTwo(self->j + dataSize);
-        unsigned char *buffer = realloc(self->buffer, bufferSize);
+    if (self->baseSize < self->wIndex + dataSize) {
+        size_t baseSize = NextPowerOfTwo(self->wIndex + dataSize);
+        unsigned char *base = realloc(self->base, baseSize);
 
-        if (buffer == NULL) {
+        if (base == NULL) {
             return false;
         }
 
-        self->buffer = buffer;
-        self->bufferSize = bufferSize;
+        self->base = base;
+        self->baseSize = baseSize;
     }
 
-    memcpy(self->buffer + self->j, data, dataSize);
-    self->j += dataSize;
+    if (data != NULL) {
+        memcpy(self->base + self->wIndex, data, dataSize);
+    }
+
+    self->wIndex += dataSize;
     return true;
 }
 
@@ -91,20 +93,22 @@ size_t
 FIFO_Read(struct FIFO *self, void *buffer, size_t bufferSize)
 {
     assert(self != NULL);
-    assert(buffer != NULL || bufferSize == 0);
-    size_t dataSize = self->j - self->i;
+    size_t dataSize = self->wIndex - self->rIndex;
 
     if (dataSize > bufferSize) {
         dataSize = bufferSize;
     }
 
-    memcpy(buffer, self->buffer + self->i, dataSize);
-    self->i += dataSize;
+    if (buffer != NULL) {
+        memcpy(buffer, self->base + self->rIndex, dataSize);
+    }
 
-    if (self->i >= self->j - self->i) {
-        memcpy(self->buffer, self->buffer + self->i, self->j - self->i);
-        self->j -= self->i;
-        self->i = 0;
+    self->rIndex += dataSize;
+
+    if (self->rIndex >= self->wIndex - self->rIndex) {
+        memcpy(self->base, self->base + self->rIndex, self->wIndex - self->rIndex);
+        self->wIndex -= self->rIndex;
+        self->rIndex = 0;
     }
 
     return dataSize;

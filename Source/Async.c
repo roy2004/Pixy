@@ -21,7 +21,7 @@ void
 Async_DispatchCalls(struct Async *self)
 {
     assert(self != NULL);
-    struct __AsyncCall *calls = FIFO_GetData(&self->callFIFO);
+    const struct __AsyncCall *calls = FIFO_GetData(&self->callFIFO);
     ptrdiff_t n = FIFO_GetDataSize(&self->callFIFO) / sizeof *calls;
     ptrdiff_t i;
 
@@ -29,5 +29,5 @@ Async_DispatchCalls(struct Async *self)
         calls[i].function(calls[i].argument);
     }
 
-    FIFO_ClearData(&self->callFIFO);
+    FIFO_Read(&self->callFIFO, NULL, -1);
 }

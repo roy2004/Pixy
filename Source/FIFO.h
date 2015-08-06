@@ -8,16 +8,17 @@
 
 struct FIFO
 {
-    unsigned char *buffer;
-    size_t bufferSize;
-    ptrdiff_t i;
-    ptrdiff_t j;
+    unsigned char *base;
+    size_t baseSize;
+    ptrdiff_t rIndex;
+    ptrdiff_t wIndex;
 };
 
 
-static inline void *FIFO_GetData(const struct FIFO *);
+static inline const void *FIFO_GetData(const struct FIFO *);
 static inline size_t FIFO_GetDataSize(const struct FIFO *);
-static inline void FIFO_ClearData(struct FIFO *);
+static inline void *FIFO_GetBuffer(const struct FIFO *);
+static inline size_t FIFO_GetBufferSize(const struct FIFO *);
 
 void FIFO_Initialize(struct FIFO *);
 void FIFO_Finalize(const struct FIFO *);
@@ -26,11 +27,11 @@ bool FIFO_Write(struct FIFO *, const void *, size_t);
 size_t FIFO_Read(struct FIFO *, void *, size_t);
 
 
-static inline void *
+static inline const void *
 FIFO_GetData(const struct FIFO *self)
 {
     assert(self != NULL);
-    return self->buffer + self->i;
+    return self->base + self->rIndex;
 }
 
 
@@ -38,14 +39,21 @@ static inline size_t
 FIFO_GetDataSize(const struct FIFO *self)
 {
     assert(self != NULL);
-    return self->j - self->i;
+    return self->wIndex - self->rIndex;
 }
 
 
-static inline void
-FIFO_ClearData(struct FIFO *self)
+static inline void *
+FIFO_GetBuffer(const struct FIFO *self)
 {
     assert(self != NULL);
-    self->i = 0;
-    self->j = 0;
+    return self->base + self->wIndex;
+}
+
+
+static inline size_t
+FIFO_GetBufferSize(const struct FIFO *self)
+{
+    assert(self != NULL);
+    return self->baseSize - self->wIndex;
 }
