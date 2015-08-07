@@ -13,7 +13,7 @@ OBJECTS = Async.o\
           Timer.o
 CPPFLAGS = -iquote Include -MMD -MT $@ -MF Build/$*.d -D_GNU_SOURCE
 #CPPFLAGS += -DNDEBUG
-CFLAGS = -std=c99 -pedantic -Wall -Wextra -Werror
+CFLAGS = -std=c99 -Wall -Wextra -Werror
 #CFLAGS += -O2
 ARFLAGS = rc
 

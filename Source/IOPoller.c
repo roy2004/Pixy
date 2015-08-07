@@ -198,7 +198,7 @@ IOPoller_Tick(struct IOPoller *self, int timeout, struct Async *async)
         List_Initialize(&self->dirtyEventListHead);
     }
 
-    struct epoll_event evs[4096];
+    struct epoll_event evs[8192];
     int n = epoll_wait(self->fd, evs, LENGTH_OF(evs), timeout);
 
     if (n < 0) {

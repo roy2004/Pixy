@@ -43,7 +43,7 @@ ThreadPool_Initialize(struct ThreadPool *self, struct IOPoller *ioPoller)
     int fds[2];
     xpipe(fds);
     xfcntl(fds[0], F_SETFL, xfcntl(fds[0], F_GETFL, 0) | O_NONBLOCK);
-    xfcntl(fds[1], F_SETPIPE_SZ, 4096 * sizeof(struct Work *));
+    xfcntl(fds[1], F_SETPIPE_SZ, 8192 * sizeof(struct Work *));
 
     if (IOPoller_SetWatch(ioPoller, &self->ioWatch, fds[0], IOReadable, (uintptr_t)self
                           , WorkerCallback) < 0) {
@@ -171,7 +171,7 @@ static void
 WorkerCallback(uintptr_t argument)
 {
     struct ThreadPool *threadPool = (struct ThreadPool *)argument;
-    struct Work *works[1024];
+    struct Work *works[8192];
     int n = xread(threadPool->fds[0], works, sizeof works) / sizeof *works;
     int i;
 

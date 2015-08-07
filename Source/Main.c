@@ -94,7 +94,7 @@ Loop(void)
         Async_DispatchCalls(&async);
 
         if (Timer_Tick(&Timer, &async) < 0) {
-            LOG_FATAL_ERROR("`IOPoller_Tick()` failed: %s", strerror(errno));
+            LOG_FATAL_ERROR("`Timer_Tick()` failed: %s", strerror(errno));
         }
 
         Async_DispatchCalls(&async);
