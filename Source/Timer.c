@@ -1,10 +1,12 @@
 #include "Timer.h"
 
+#include <stddef.h>
 #include <assert.h>
 #include <time.h>
 #include <errno.h>
 #include <string.h>
 
+#include "Utility.h"
 #include "Async.h"
 #include "Logging.h"
 
@@ -32,9 +34,9 @@ Timer_Finalize(struct Timer *self)
 }
 
 
-bool
-Timer_SetTimeout(struct Timer *self, struct Timeout *timeout, int delay, any_t data
-                 , void (*callback)(any_t))
+int
+Timer_SetTimeout(struct Timer *self, struct Timeout *timeout, int delay, uintptr_t data
+                 , void (*callback)(uintptr_t))
 {
     assert(self != NULL);
     assert(timeout != NULL);
@@ -43,11 +45,11 @@ Timer_SetTimeout(struct Timer *self, struct Timeout *timeout, int delay, any_t d
     timeout->data = data;
     timeout->callback = callback;
 
-    if (!Heap_InsertNode(&self->timeoutHeap, &timeout->heapNode, TimeoutHeapNode_Compare)) {
-        return false;
+    if (Heap_InsertNode(&self->timeoutHeap, &timeout->heapNode, TimeoutHeapNode_Compare) < 0) {
+        return -1;
     }
 
-    return true;
+    return 0;
 }
 
 
@@ -86,7 +88,7 @@ Timer_CalculateWaitTime(const struct Timer *self)
 }
 
 
-bool
+int
 Timer_Tick(struct Timer *self, struct Async *async)
 {
     assert(self != NULL);
@@ -94,7 +96,7 @@ Timer_Tick(struct Timer *self, struct Async *async)
     struct HeapNode *timeoutHeapNode = Heap_GetTop(&self->timeoutHeap);
 
     if (timeoutHeapNode == NULL) {
-        return true;
+        return 0;
     }
 
     uint64_t now = GetTime();
@@ -106,15 +108,15 @@ Timer_Tick(struct Timer *self, struct Async *async)
             break;
         }
 
-        if (!Async_AddCall(async, timeout->callback, timeout->data)) {
-            return false;
+        if (Async_AddCall(async, timeout->callback, timeout->data) < 0) {
+            return -1;
         }
 
         Heap_RemoveNode(&self->timeoutHeap, timeoutHeapNode, TimeoutHeapNode_Compare);
         timeoutHeapNode = Heap_GetTop(&self->timeoutHeap);
     } while (timeoutHeapNode != NULL);
 
-    return true;
+    return 0;
 }
 
 

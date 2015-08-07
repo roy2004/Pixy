@@ -1,9 +1,10 @@
 #pragma once
 
 
+#include <stdint.h>
+#include <stddef.h>
 #include <assert.h>
 
-#include "Base.h"
 #include "FIFO.h"
 
 
@@ -15,20 +16,20 @@ struct Async
 
 struct __AsyncCall
 {
-    void (*function)(any_t);
-    any_t argument;
+    void (*function)(uintptr_t);
+    uintptr_t argument;
 };
 
 
-static inline bool Async_AddCall(struct Async *, void (*)(any_t), any_t);
+static inline int Async_AddCall(struct Async *, void (*)(uintptr_t), uintptr_t);
 
 void Async_Initialize(struct Async *);
 void Async_Finalize(const struct Async *);
 void Async_DispatchCalls(struct Async *);
 
 
-static inline bool
-Async_AddCall(struct Async *self, void (*function)(any_t), any_t argument)
+static inline int
+Async_AddCall(struct Async *self, void (*function)(uintptr_t), uintptr_t argument)
 {
     assert(self != NULL);
     assert(function != NULL);

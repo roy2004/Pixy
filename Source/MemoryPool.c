@@ -5,6 +5,8 @@
 #include <errno.h>
 #include <stdint.h>
 
+#include "Utility.h"
+
 
 #define MEMORY_CHUNK_SIZE ((size_t)65536)
 
@@ -17,7 +19,7 @@ struct MemoryChunk
 };
 
 
-static bool MemoryPool_IncreaseChunks(struct MemoryPool *);
+static int MemoryPool_IncreaseChunks(struct MemoryPool *);
 
 static struct MemoryChunk *LocateMemoryChunk(const void *);
 
@@ -90,7 +92,7 @@ MemoryPool_AllocateBlock(struct MemoryPool *self)
     assert(self != NULL);
 
     if (List_IsEmpty(&self->usableChunkListHead)) {
-        if (!MemoryPool_IncreaseChunks(self)) {
+        if (MemoryPool_IncreaseChunks(self) < 0) {
             return NULL;
         }
     }
@@ -146,7 +148,7 @@ MemoryPool_FreeBlock(struct MemoryPool *self, void *block)
 }
 
 
-static bool
+static int
 MemoryPool_IncreaseChunks(struct MemoryPool *self)
 {
     struct MemoryChunk *chunk;
@@ -154,15 +156,15 @@ MemoryPool_IncreaseChunks(struct MemoryPool *self)
 
     if (errorNumber != 0) {
         assert(errorNumber != EINVAL);
-        return false;
+        return -1;
     }
 
-    void *block = (unsigned char *)chunk + MEMORY_CHUNK_SIZE - self->blockSize;
+    void *block = (char *)chunk + MEMORY_CHUNK_SIZE - self->blockSize;
     void **slot = block;
     chunk->freeSlot = slot;
 
     for (;;) {
-        block = (unsigned char *)block - self->blockSize;
+        block = (char *)block - self->blockSize;
 
         if (block < (void *)(chunk + 1)) {
             break;
@@ -175,7 +177,7 @@ MemoryPool_IncreaseChunks(struct MemoryPool *self)
     *slot = NULL;
     chunk->numberOfFreeSlots = self->numberOfSlotsPerChunk;
     List_InsertFront(&self->usableChunkListHead, &chunk->listItem);
-    return true;
+    return 0;
 }
 
 

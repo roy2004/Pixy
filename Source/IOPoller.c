@@ -2,10 +2,13 @@
 
 #include <sys/epoll.h>
 #include <unistd.h>
+
+#include <stddef.h>
 #include <assert.h>
 #include <errno.h>
 #include <string.h>
 
+#include "Utility.h"
 #include "Async.h"
 #include "Logging.h"
 
@@ -21,7 +24,7 @@ struct IOEvent
 };
 
 
-static int IOEventRBTreeNode_Match(const struct RBTreeNode *, any_t);
+static int IOEventRBTreeNode_Match(const struct RBTreeNode *, uintptr_t);
 static int IOEventRBTreeNode_Compare(const struct RBTreeNode *, const struct RBTreeNode *);
 
 static int xepoll_create1(int);
@@ -55,16 +58,16 @@ IOPoller_Finalize(const struct IOPoller *self)
 }
 
 
-bool
+int
 IOPoller_SetWatch(struct IOPoller *self, struct IOWatch *watch, int fd, enum IOCondition condition
-                  , any_t data, void (*callback)(any_t))
+                  , uintptr_t data, void (*callback)(uintptr_t))
 {
     assert(self != NULL);
     assert(watch != NULL);
     assert(fd >= 0);
     assert(condition == IOReadable || condition == IOWritable);
     assert(callback != NULL);
-    struct RBTreeNode *eventRBTreeNode = RBTree_Search(&self->eventRBTree, (any_t)fd
+    struct RBTreeNode *eventRBTreeNode = RBTree_Search(&self->eventRBTree, (uintptr_t)fd
                                                        , IOEventRBTreeNode_Match);
     struct IOEvent *event;
 
@@ -72,7 +75,7 @@ IOPoller_SetWatch(struct IOPoller *self, struct IOWatch *watch, int fd, enum IOC
         event = MemoryPool_AllocateBlock(&self->eventMemoryPool);
 
         if (event == NULL) {
-            return false;
+            return -1;
         }
 
         event->fd = fd;
@@ -99,7 +102,7 @@ IOPoller_SetWatch(struct IOPoller *self, struct IOWatch *watch, int fd, enum IOC
         }
     }
 
-    return true;
+    return 0;
 }
 
 
@@ -128,7 +131,7 @@ IOPoller_ClearWatches(struct IOPoller *self, int fd)
 {
     assert(self != NULL);
     assert(fd >= 0);
-    struct RBTreeNode *eventRBTreeNode = RBTree_Search(&self->eventRBTree, (any_t)fd
+    struct RBTreeNode *eventRBTreeNode = RBTree_Search(&self->eventRBTree, (uintptr_t)fd
                                                        , IOEventRBTreeNode_Match);
 
     if (eventRBTreeNode == NULL) {
@@ -152,7 +155,7 @@ IOPoller_ClearWatches(struct IOPoller *self, int fd)
 }
 
 
-bool
+int
 IOPoller_Tick(struct IOPoller *self, int timeout, struct Async *async)
 {
     assert(self != NULL);
@@ -200,7 +203,7 @@ IOPoller_Tick(struct IOPoller *self, int timeout, struct Async *async)
 
     if (n < 0) {
         if (errno == EINTR) {
-            return false;
+            return -1;
         }
 
         LOG_FATAL_ERROR("`epoll_wait()` failed: %s", strerror(errno));
@@ -217,8 +220,8 @@ IOPoller_Tick(struct IOPoller *self, int timeout, struct Async *async)
             FOR_EACH_LIST_ITEM_FORWARD(watchListItem, &event->watchListHeads[0]) {
                 struct IOWatch *watch = CONTAINER_OF(watchListItem, struct IOWatch, listItem);
 
-                if (!Async_AddCall(async, watch->callback, watch->data)) {
-                    return false;
+                if (Async_AddCall(async, watch->callback, watch->data) < 0) {
+                    return -1;
                 }
             }
         }
@@ -229,19 +232,19 @@ IOPoller_Tick(struct IOPoller *self, int timeout, struct Async *async)
             FOR_EACH_LIST_ITEM_FORWARD(watchListItem, &event->watchListHeads[1]) {
                 struct IOWatch *watch = CONTAINER_OF(watchListItem, struct IOWatch, listItem);
 
-                if (!Async_AddCall(async, watch->callback, watch->data)) {
-                    return false;
+                if (Async_AddCall(async, watch->callback, watch->data) < 0) {
+                    return -1;
                 }
             }
         }
     }
 
-    return true;
+    return 0;
 }
 
 
 static int
-IOEventRBTreeNode_Match(const struct RBTreeNode *self, any_t key)
+IOEventRBTreeNode_Match(const struct RBTreeNode *self, uintptr_t key)
 {
     return COMPARE(CONTAINER_OF(self, const struct IOEvent, rbTreeNode)->fd, (int)key);
 }

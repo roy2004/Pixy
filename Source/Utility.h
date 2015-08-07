@@ -1,15 +1,14 @@
 #pragma once
 
 
-#include <stdbool.h>
-#include <stddef.h>
-
-
 #define LENGTH_OF(ARRAY) \
     (sizeof (ARRAY) / sizeof *(ARRAY))
 
+#define OFFSET_OF(TYPE, FIELD) \
+    ((char *)&((TYPE *)0)->FIELD - (char *)0)
+
 #define CONTAINER_OF(ADDRESS, TYPE, FIELD) \
-    ((TYPE *)((unsigned char *)(ADDRESS) - offsetof(TYPE, FIELD)))
+    ((TYPE *)((char *)(ADDRESS) - OFFSET_OF(TYPE, FIELD)))
 
 #define COMPARE(A, B) \
     (((A) > (B)) - ((A) < (B)))
@@ -19,10 +18,3 @@
 
 #define __STRINGIZE(TEXT) \
     #TEXT
-
-
-#if defined __i386__ || defined __x86_64__
-typedef unsigned long any_t;
-#else
-#error architecture not supported
-#endif

@@ -1,9 +1,8 @@
 #pragma once
 
 
+#include <stddef.h>
 #include <assert.h>
-
-#include "Base.h"
 
 
 struct Heap
@@ -26,9 +25,9 @@ static inline struct HeapNode *Heap_GetTop(const struct Heap *);
 
 void Heap_Initialize(struct Heap *);
 void Heap_Finalize(const struct Heap *);
-bool Heap_ShrinkToFit(struct Heap *);
-bool Heap_InsertNode(struct Heap *, struct HeapNode *, int (*)(const struct HeapNode *
-                                                               , const struct HeapNode *));
+int Heap_ShrinkToFit(struct Heap *);
+int Heap_InsertNode(struct Heap *, struct HeapNode *, int (*)(const struct HeapNode *
+                                                              , const struct HeapNode *));
 void Heap_AdjustNode(struct Heap *, struct HeapNode *, int (*)(const struct HeapNode *
                                                                , const struct HeapNode *));
 void Heap_RemoveNode(struct Heap *, const struct HeapNode *, int (*)(const struct HeapNode *

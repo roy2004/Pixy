@@ -1,7 +1,8 @@
 #pragma once
 
 
-#include "Base.h"
+#include <stdint.h>
+
 #include "MemoryPool.h"
 #include "RBTree.h"
 #include "List.h"
@@ -30,15 +31,15 @@ struct IOWatch
 {
     struct ListItem listItem;
     enum IOCondition condition;
-    any_t data;
-    void (*callback)(any_t);
+    uintptr_t data;
+    void (*callback)(uintptr_t);
 };
 
 
 void IOPoller_Initialize(struct IOPoller *);
 void IOPoller_Finalize(const struct IOPoller *);
-bool IOPoller_SetWatch(struct IOPoller *, struct IOWatch *, int, enum IOCondition, any_t
-                       , void (*)(any_t));
+int IOPoller_SetWatch(struct IOPoller *, struct IOWatch *, int, enum IOCondition, uintptr_t
+                      , void (*)(uintptr_t));
 void IOPoller_ClearWatch(struct IOPoller *, const struct IOWatch *);
 void IOPoller_ClearWatches(struct IOPoller *, int);
-bool IOPoller_Tick(struct IOPoller *, int, struct Async *);
+int IOPoller_Tick(struct IOPoller *, int, struct Async *);

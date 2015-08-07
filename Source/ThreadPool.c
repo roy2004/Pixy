@@ -2,17 +2,20 @@
 
 #include <fcntl.h>
 #include <unistd.h>
+
+#include <stddef.h>
 #include <assert.h>
 #include <errno.h>
 #include <string.h>
 
+#include "Utility.h"
 #include "Logging.h"
 
 
 static void ThreadPool_InsertWorkListItem(struct ThreadPool *, struct ListItem *);
 static void ThreadPool_Worker(struct ThreadPool *);
 
-static void WorkerCallback(any_t);
+static void WorkerCallback(uintptr_t);
 static void *ThreadStart(void *);
 
 static void xpipe(int [2]);
@@ -32,7 +35,7 @@ static void xpthread_create(pthread_t *, const pthread_attr_t *, void *(*)(void 
 static void xpthread_join(pthread_t, void **);
 
 
-bool
+int
 ThreadPool_Initialize(struct ThreadPool *self, struct IOPoller *ioPoller)
 {
     assert(self != NULL);
@@ -42,18 +45,18 @@ ThreadPool_Initialize(struct ThreadPool *self, struct IOPoller *ioPoller)
     xfcntl(fds[0], F_SETFL, xfcntl(fds[0], F_GETFL, 0) | O_NONBLOCK);
     xfcntl(fds[1], F_SETPIPE_SZ, 4096 * sizeof(struct Work *));
 
-    if (!IOPoller_SetWatch(ioPoller, &self->ioWatch, fds[0], IOReadable, (any_t)self
-                           , WorkerCallback)) {
+    if (IOPoller_SetWatch(ioPoller, &self->ioWatch, fds[0], IOReadable, (uintptr_t)self
+                          , WorkerCallback) < 0) {
         xclose(fds[0]);
         xclose(fds[1]);
-        return false;
+        return -1;
     }
 
     self->fds[0] = fds[0];
     self->fds[1] = fds[1];
     self->ioPoller = ioPoller;
     List_Initialize(&self->workListHead);
-    return true;
+    return 0;
 }
 
 
@@ -99,8 +102,8 @@ ThreadPool_Stop(struct ThreadPool *self)
 
 
 void
-ThreadPool_PostWork(struct ThreadPool *self, struct Work *work, void (*function)(any_t)
-                    , any_t argument, any_t data, void (*callback)(any_t))
+ThreadPool_PostWork(struct ThreadPool *self, struct Work *work, void (*function)(uintptr_t)
+                    , uintptr_t argument, uintptr_t data, void (*callback)(uintptr_t))
 {
     assert(self != NULL);
     assert(work != NULL);
@@ -165,7 +168,7 @@ ThreadPool_Worker(struct ThreadPool *self)
 
 
 static void
-WorkerCallback(any_t argument)
+WorkerCallback(uintptr_t argument)
 {
     struct ThreadPool *threadPool = (struct ThreadPool *)argument;
     struct Work *works[1024];

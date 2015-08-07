@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 
-#include "Base.h"
 #include "Heap.h"
 
 
@@ -20,14 +19,14 @@ struct Timeout
 {
     struct HeapNode heapNode;
     uint64_t dueTime;
-    any_t data;
-    void (*callback)(any_t);
+    uintptr_t data;
+    void (*callback)(uintptr_t);
 };
 
 
 void Timer_Initialize(struct Timer *);
 void Timer_Finalize(struct Timer *);
-bool Timer_SetTimeout(struct Timer *, struct Timeout *, int, any_t, void (*)(any_t));
+int Timer_SetTimeout(struct Timer *, struct Timeout *, int, uintptr_t, void (*)(uintptr_t));
 void Timer_ClearTimeout(struct Timer *, const struct Timeout *);
 int Timer_CalculateWaitTime(const struct Timer *);
-bool Timer_Tick(struct Timer *, struct Async *);
+int Timer_Tick(struct Timer *, struct Async *);

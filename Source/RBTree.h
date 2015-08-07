@@ -1,7 +1,7 @@
 #pragma once
 
 
-#include "Base.h"
+#include <stdint.h>
 
 
 enum __RBTreeNodeColor
@@ -31,7 +31,7 @@ void RBTree_Initialize(struct RBTree *);
 void RBTree_InsertNode(struct RBTree *, struct RBTreeNode *, int (*)(const struct RBTreeNode *
                                                                      , const struct RBTreeNode *));
 void RBTree_RemoveNode(struct RBTree *, const struct RBTreeNode *);
-struct RBTreeNode *RBTree_Search(const struct RBTree *, any_t, int (*)(const struct RBTreeNode *
-                                                                       , any_t));
+struct RBTreeNode *RBTree_Search(const struct RBTree *, uintptr_t, int (*)(const struct RBTreeNode *
+                                                                           , uintptr_t));
 struct RBTreeNode *RBTree_FindMin(const struct RBTree *);
 struct RBTreeNode *RBTree_FindMax(const struct RBTree *);

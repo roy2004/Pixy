@@ -7,8 +7,8 @@
 #define HEAP_SEGMENT_LENGTH 256
 
 
-static bool Heap_IncreaseSegments(struct Heap *);
-static bool Heap_ExpandSegmentTable(struct Heap *);
+static int Heap_IncreaseSegments(struct Heap *);
+static int Heap_ExpandSegmentTable(struct Heap *);
 static struct HeapNode **Heap_LocateSlot(const struct Heap *, int);
 static void Heap_SiftNodeUp(struct Heap *, struct HeapNode **, int (*)(const struct HeapNode *
                                                                        , const struct HeapNode *));
@@ -49,7 +49,7 @@ Heap_Finalize(const struct Heap *self)
 }
 
 
-bool
+int
 Heap_ShrinkToFit(struct Heap *self)
 {
     assert(self != NULL);
@@ -70,7 +70,7 @@ Heap_ShrinkToFit(struct Heap *self)
     int segmentTableLength = NextPowerOfTwo(numberOfSegments);
 
     if (self->segmentTableLength == segmentTableLength) {
-        return true;
+        return 0;
     }
 
     if (segmentTableLength == 0) {
@@ -82,18 +82,18 @@ Heap_ShrinkToFit(struct Heap *self)
                                                                       * sizeof *segmentTable);
 
         if (segmentTable == NULL) {
-            return false;
+            return -1;
         }
 
         self->segmentTable = segmentTable;
         self->segmentTableLength = segmentTableLength;
     }
 
-    return true;
+    return 0;
 }
 
 
-bool
+int
 Heap_InsertNode(struct Heap *self, struct HeapNode *node
                 , int (*nodeComparer)(const struct HeapNode *, const struct HeapNode *))
 {
@@ -102,15 +102,15 @@ Heap_InsertNode(struct Heap *self, struct HeapNode *node
     assert(nodeComparer != NULL);
 
     if (self->numberOfNodes == self->numberOfSlots) {
-        if (!Heap_IncreaseSegments(self)) {
-            return false;
+        if (Heap_IncreaseSegments(self) < 0) {
+            return -1;
         }
     }
 
     struct HeapNode **slot = Heap_LocateSlot(self, self->numberOfNodes);
     (*slot = node)->slotNumber = self->numberOfNodes++;
     Heap_SiftNodeUp(self, slot, nodeComparer);
-    return true;
+    return 0;
 }
 
 
@@ -157,28 +157,28 @@ Heap_RemoveNode(struct Heap *self, const struct HeapNode *node
 }
 
 
-static bool
+static int
 Heap_IncreaseSegments(struct Heap *self)
 {
     if (self->numberOfSegments == self->segmentTableLength) {
-        if (!Heap_ExpandSegmentTable(self)) {
-            return false;
+        if (Heap_ExpandSegmentTable(self) < 0) {
+            return -1;
         }
     }
 
     struct HeapNode **segment = malloc(HEAP_SEGMENT_LENGTH * sizeof *segment);
 
     if (segment == NULL) {
-        return false;
+        return -1;
     }
 
     self->segmentTable[self->numberOfSegments++] = segment;
     self->numberOfSlots += HEAP_SEGMENT_LENGTH;
-    return true;
+    return 0;
 }
 
 
-static bool
+static int
 Heap_ExpandSegmentTable(struct Heap *self)
 {
     int segmentTableLength = self->segmentTableLength == 0 ? 1 : 2u * self->segmentTableLength;
@@ -186,12 +186,12 @@ Heap_ExpandSegmentTable(struct Heap *self)
                                                                   * sizeof *segmentTable);
 
     if (segmentTable == NULL) {
-        return false;
+        return -1;
     }
 
     self->segmentTable = segmentTable;
     self->segmentTableLength = segmentTableLength;
-    return true;
+    return 0;
 }
 
 

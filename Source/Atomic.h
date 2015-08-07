@@ -3,8 +3,6 @@
 
 #include <assert.h>
 
-#include "Base.h"
-
 
 #if defined __i386__ || defined __x86_64__
 #define ATOMIC_EXCHANGE(X, Y)       \

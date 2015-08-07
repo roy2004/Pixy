@@ -1,9 +1,8 @@
 #pragma once
 
 
+#include <stddef.h>
 #include <assert.h>
-
-#include "Base.h"
 
 
 #define FOR_EACH_LIST_ITEM_BACKWARD(LIST_ITEM, LIST_HEAD)                                       \
@@ -27,7 +26,7 @@ struct ListItem
 static inline void List_Initialize(struct ListItem *);
 static inline void List_InsertBack(struct ListItem *, struct ListItem *);
 static inline void List_InsertFront(struct ListItem *, struct ListItem *);
-static inline bool List_IsEmpty(const struct ListItem *);
+static inline int List_IsEmpty(const struct ListItem *);
 #define List_GetBack ListItem_GetPrev
 #define List_GetFront ListItem_GetNext
 
@@ -69,7 +68,7 @@ List_InsertFront(struct ListItem *head, struct ListItem *front)
 }
 
 
-static inline bool
+static inline int
 List_IsEmpty(const struct ListItem *head)
 {
     assert(head != NULL);

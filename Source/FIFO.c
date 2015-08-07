@@ -1,7 +1,7 @@
 #include "FIFO.h"
 
-#include <stdlib.h>
 #include <string.h>
+#include <stdlib.h>
 #include <limits.h>
 
 
@@ -27,7 +27,7 @@ FIFO_Finalize(const struct FIFO *self)
 }
 
 
-bool
+int
 FIFO_ShrinkToFit(struct FIFO *self)
 {
     assert(self != NULL);
@@ -41,7 +41,7 @@ FIFO_ShrinkToFit(struct FIFO *self)
     size_t baseSize = NextPowerOfTwo(self->wIndex);
 
     if (self->baseSize == baseSize) {
-        return true;
+        return 0;
     }
 
     if (baseSize == 0) {
@@ -49,31 +49,31 @@ FIFO_ShrinkToFit(struct FIFO *self)
         self->base = NULL;
         self->baseSize = 0;
     } else {
-        unsigned char *base = realloc(self->base, baseSize);
+        char *base = realloc(self->base, baseSize);
 
         if (base == NULL) {
-            return false;
+            return -1;
         }
 
         self->base = base;
         self->baseSize = baseSize;
     }
 
-    return true;
+    return 0;
 }
 
 
-bool
+int
 FIFO_Write(struct FIFO *self, const void *data, size_t dataSize)
 {
     assert(self != NULL);
 
     if (self->baseSize < self->wIndex + dataSize) {
         size_t baseSize = NextPowerOfTwo(self->wIndex + dataSize);
-        unsigned char *base = realloc(self->base, baseSize);
+        char *base = realloc(self->base, baseSize);
 
         if (base == NULL) {
-            return false;
+            return -1;
         }
 
         self->base = base;
@@ -85,7 +85,7 @@ FIFO_Write(struct FIFO *self, const void *data, size_t dataSize)
     }
 
     self->wIndex += dataSize;
-    return true;
+    return 0;
 }
 
 

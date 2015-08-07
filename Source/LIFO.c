@@ -1,7 +1,7 @@
 #include "LIFO.h"
 
-#include <stdlib.h>
 #include <string.h>
+#include <stdlib.h>
 #include <limits.h>
 
 
@@ -25,14 +25,14 @@ void LIFO_Finalize(const struct LIFO *self)
 }
 
 
-bool
+int
 LIFO_ShrinkToFit(struct LIFO *self)
 {
     assert(self != NULL);
     size_t baseSize = NextPowerOfTwo(self->rwIndex);
 
     if (self->baseSize == baseSize) {
-        return true;
+        return 0;
     }
 
     if (baseSize == 0) {
@@ -40,31 +40,31 @@ LIFO_ShrinkToFit(struct LIFO *self)
         self->base = NULL;
         self->baseSize = 0;
     } else {
-        unsigned char *base = realloc(self->base, baseSize);
+        char *base = realloc(self->base, baseSize);
 
         if (base == NULL) {
-            return false;
+            return -1;
         }
 
         self->base = base;
         self->baseSize = baseSize;
     }
 
-    return true;
+    return 0;
 }
 
 
-bool
+int
 LIFO_Write(struct LIFO *self, const void *data, size_t dataSize)
 {
     assert(self != NULL);
 
     if (self->baseSize < self->rwIndex + dataSize) {
         size_t baseSize = NextPowerOfTwo(self->rwIndex + dataSize);
-        unsigned char *base = realloc(self->base, baseSize);
+        char *base = realloc(self->base, baseSize);
 
         if (base == NULL) {
-            return false;
+            return -1;
         }
 
         self->base = base;
@@ -76,7 +76,7 @@ LIFO_Write(struct LIFO *self, const void *data, size_t dataSize)
     }
 
     self->rwIndex += dataSize;
-    return true;
+    return 0;
 }
 
 

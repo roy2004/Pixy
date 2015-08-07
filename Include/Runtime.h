@@ -3,15 +3,17 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netdb.h>
 
-#include "Base.h"
+#include <stdint.h>
 
 
-bool Call(void (*coroutine)(any_t), any_t argument);
+struct addrinfo;
+
+
+int Call(void (*coroutine)(uintptr_t), uintptr_t argument);
 void Yield(void);
 void Exit(void);
-bool Sleep(int duration);
+int Sleep(int duration);
 
 int Pipe2(int *fds, int flags);
 ssize_t Read(int fd, void *buffer, size_t bufferSize, int timeout);

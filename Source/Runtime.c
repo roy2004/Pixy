@@ -2,6 +2,9 @@
 
 #include <fcntl.h>
 #include <unistd.h>
+#include <netdb.h>
+
+#include <stddef.h>
 #include <errno.h>
 
 #include "Scheduler.h"
@@ -10,26 +13,26 @@
 #include "ThreadPool.h"
 
 
-static void SleepCallback(any_t);
-static void ReadCallback1(any_t);
-static void ReadCallback2(any_t);
-static void WriteCallback1(any_t);
-static void WriteCallback2(any_t);
-static void Accept4Callback1(any_t);
-static void Accept4Callback2(any_t);
-static void ConnectCallback1(any_t);
-static void ConnectCallback2(any_t);
-static void RecvCallback1(any_t);
-static void RecvCallback2(any_t);
-static void SendCallback1(any_t);
-static void SendCallback2(any_t);
-static void RecvFromCallback1(any_t);
-static void RecvFromCallback2(any_t);
-static void SendToCallback1(any_t);
-static void SendToCallback2(any_t);
-static void DoWork(void (*)(any_t), any_t);
-static void DoWorkCallback(any_t);
-static void GetAddrInfoWrapper(any_t);
+static void SleepCallback(uintptr_t);
+static void ReadCallback1(uintptr_t);
+static void ReadCallback2(uintptr_t);
+static void WriteCallback1(uintptr_t);
+static void WriteCallback2(uintptr_t);
+static void Accept4Callback1(uintptr_t);
+static void Accept4Callback2(uintptr_t);
+static void ConnectCallback1(uintptr_t);
+static void ConnectCallback2(uintptr_t);
+static void RecvCallback1(uintptr_t);
+static void RecvCallback2(uintptr_t);
+static void SendCallback1(uintptr_t);
+static void SendCallback2(uintptr_t);
+static void RecvFromCallback1(uintptr_t);
+static void RecvFromCallback2(uintptr_t);
+static void SendToCallback1(uintptr_t);
+static void SendToCallback2(uintptr_t);
+static void DoWork(void (*)(uintptr_t), uintptr_t);
+static void DoWorkCallback(uintptr_t);
+static void GetAddrInfoWrapper(uintptr_t);
 
 
 struct Scheduler Scheduler;
@@ -38,12 +41,12 @@ struct Timer Timer;
 struct ThreadPool ThreadPool;
 
 
-bool
-Call(void (*coroutine)(any_t), any_t argument)
+int
+Call(void (*coroutine)(uintptr_t), uintptr_t argument)
 {
     if (coroutine == NULL) {
         errno = EINVAL;
-        return false;
+        return -1;
     }
 
     return Scheduler_CallCoroutine(&Scheduler, coroutine, argument);
@@ -64,18 +67,18 @@ Exit(void)
 }
 
 
-bool
+int
 Sleep(int duration)
 {
     struct Timeout timeout;
 
-    if (!Timer_SetTimeout(&Timer, &timeout, duration, (any_t)Scheduler_GetCurrentFiber(&Scheduler)
-                          , SleepCallback)) {
-        return false;
+    if (Timer_SetTimeout(&Timer, &timeout, duration
+                         , (uintptr_t)Scheduler_GetCurrentFiber(&Scheduler), SleepCallback) < 0) {
+        return -1;
     }
 
     Scheduler_SuspendCurrentFiber(&Scheduler);
-    return true;
+    return 0;
 }
 
 
@@ -115,12 +118,13 @@ Read(int fd, void *buffer, size_t bufferSize, int timeout)
         .bufferSize = bufferSize
     };
 
-    if (!IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOReadable, (any_t)&context
-                           , ReadCallback1)) {
+    if (IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOReadable, (uintptr_t)&context
+                          , ReadCallback1) < 0) {
         return -1;
     }
 
-    if (!Timer_SetTimeout(&Timer, &context.timeout, timeout, (any_t)&context, ReadCallback2)) {
+    if (Timer_SetTimeout(&Timer, &context.timeout, timeout, (uintptr_t)&context, ReadCallback2)
+        < 0) {
         IOPoller_ClearWatch(&IOPoller, &context.ioWatch);
         return -1;
     }
@@ -161,12 +165,13 @@ Write(int fd, const void *data, size_t dataSize, int timeout)
         .dataSize = dataSize
     };
 
-    if (!IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOWritable, (any_t)&context
-                           , WriteCallback1)) {
+    if (IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOWritable, (uintptr_t)&context
+                          , WriteCallback1) < 0) {
         return -1;
     }
 
-    if (!Timer_SetTimeout(&Timer, &context.timeout, timeout, (any_t)&context, WriteCallback2)) {
+    if (Timer_SetTimeout(&Timer, &context.timeout, timeout, (uintptr_t)&context, WriteCallback2)
+        < 0) {
         IOPoller_ClearWatch(&IOPoller, &context.ioWatch);
         return -1;
     }
@@ -216,12 +221,13 @@ Accept4(int fd, struct sockaddr *address, socklen_t *addressLength, int flags, i
         .flags = flags
     };
 
-    if (!IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOReadable, (any_t)&context
-                           , Accept4Callback1)) {
+    if (IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOReadable, (uintptr_t)&context
+                          , Accept4Callback1) < 0) {
         return -1;
     }
 
-    if (!Timer_SetTimeout(&Timer, &context.timeout, timeout, (any_t)&context, Accept4Callback2)) {
+    if (Timer_SetTimeout(&Timer, &context.timeout, timeout, (uintptr_t)&context, Accept4Callback2)
+        < 0) {
         IOPoller_ClearWatch(&IOPoller, &context.ioWatch);
         return -1;
     }
@@ -254,12 +260,13 @@ Connect(int fd, const struct sockaddr *address, socklen_t addressLength, int tim
         .fd = fd
     };
 
-    if (!IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOWritable, (any_t)&context
-                           , ConnectCallback1)) {
+    if (IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOWritable, (uintptr_t)&context
+                          , ConnectCallback1) < 0) {
         return -1;
     }
 
-    if (!Timer_SetTimeout(&Timer, &context.timeout, timeout, (any_t)&context, ConnectCallback2)) {
+    if (Timer_SetTimeout(&Timer, &context.timeout, timeout, (uintptr_t)&context, ConnectCallback2)
+        < 0) {
         IOPoller_ClearWatch(&IOPoller, &context.ioWatch);
         return -1;
     }
@@ -302,12 +309,13 @@ Recv(int fd, void *buffer, size_t bufferSize, int flags, int timeout)
         .flags = flags
     };
 
-    if (!IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOReadable, (any_t)&context
-                           , RecvCallback1)) {
+    if (IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOReadable, (uintptr_t)&context
+                          , RecvCallback1) < 0) {
         return -1;
     }
 
-    if (!Timer_SetTimeout(&Timer, &context.timeout, timeout, (any_t)&context, RecvCallback2)) {
+    if (Timer_SetTimeout(&Timer, &context.timeout, timeout, (uintptr_t)&context, RecvCallback2)
+        < 0) {
         IOPoller_ClearWatch(&IOPoller, &context.ioWatch);
         return -1;
     }
@@ -350,12 +358,13 @@ Send(int fd, const void *data, size_t dataSize, int flags, int timeout)
         .flags = flags
     };
 
-    if (!IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOWritable, (any_t)&context
-                           , SendCallback1)) {
+    if (IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOWritable, (uintptr_t)&context
+                          , SendCallback1) < 0) {
         return -1;
     }
 
-    if (!Timer_SetTimeout(&Timer, &context.timeout, timeout, (any_t)&context, SendCallback2)) {
+    if (Timer_SetTimeout(&Timer, &context.timeout, timeout, (uintptr_t)&context, SendCallback2)
+        < 0) {
         IOPoller_ClearWatch(&IOPoller, &context.ioWatch);
         return -1;
     }
@@ -403,12 +412,13 @@ RecvFrom(int fd, void *buffer, size_t bufferSize, int flags, struct sockaddr *ad
         .addressLength = addressLength
     };
 
-    if (!IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOReadable, (any_t)&context
-                           , RecvFromCallback1)) {
+    if (IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOReadable, (uintptr_t)&context
+                          , RecvFromCallback1) < 0) {
         return -1;
     }
 
-    if (!Timer_SetTimeout(&Timer, &context.timeout, timeout, (any_t)&context, RecvFromCallback2)) {
+    if (Timer_SetTimeout(&Timer, &context.timeout, timeout, (uintptr_t)&context, RecvFromCallback2)
+        < 0) {
         IOPoller_ClearWatch(&IOPoller, &context.ioWatch);
         return -1;
     }
@@ -454,12 +464,13 @@ SendTo(int fd, const void *data, size_t dataSize, int flags, const struct sockad
         .flags = flags
     };
 
-    if (!IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOWritable, (any_t)&context
-                           , SendToCallback1)) {
+    if (IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, IOWritable, (uintptr_t)&context
+                          , SendToCallback1) < 0) {
         return -1;
     }
 
-    if (!Timer_SetTimeout(&Timer, &context.timeout, timeout, (any_t)&context, SendToCallback2)) {
+    if (Timer_SetTimeout(&Timer, &context.timeout, timeout, (uintptr_t)&context, SendToCallback2)
+        < 0) {
         IOPoller_ClearWatch(&IOPoller, &context.ioWatch);
         return -1;
     }
@@ -502,20 +513,20 @@ GetAddrInfo(const char *hostName, const char *serviceName, const struct addrinfo
         .result = result
     };
 
-    DoWork(GetAddrInfoWrapper, (any_t)&context);
+    DoWork(GetAddrInfoWrapper, (uintptr_t)&context);
     return context.errorCode;
 }
 
 
 static void
-SleepCallback(any_t argument)
+SleepCallback(uintptr_t argument)
 {
     Scheduler_ResumeFiber(&Scheduler, (struct Fiber *)argument);
 }
 
 
 static void
-ReadCallback1(any_t argument)
+ReadCallback1(uintptr_t argument)
 {
     struct {
         struct IOWatch ioWatch;
@@ -547,7 +558,7 @@ ReadCallback1(any_t argument)
 
 
 static void
-ReadCallback2(any_t argument)
+ReadCallback2(uintptr_t argument)
 {
     struct {
         struct IOWatch ioWatch;
@@ -568,7 +579,7 @@ ReadCallback2(any_t argument)
 
 
 static void
-WriteCallback1(any_t argument)
+WriteCallback1(uintptr_t argument)
 {
     struct {
         struct IOWatch ioWatch;
@@ -600,7 +611,7 @@ WriteCallback1(any_t argument)
 
 
 static void
-WriteCallback2(any_t argument)
+WriteCallback2(uintptr_t argument)
 {
     struct {
         struct IOWatch ioWatch;
@@ -621,7 +632,7 @@ WriteCallback2(any_t argument)
 
 
 static void
-Accept4Callback1(any_t argument)
+Accept4Callback1(uintptr_t argument)
 {
     struct {
         struct IOWatch ioWatch;
@@ -655,7 +666,7 @@ Accept4Callback1(any_t argument)
 
 
 static void
-Accept4Callback2(any_t argument)
+Accept4Callback2(uintptr_t argument)
 {
     struct {
         struct IOWatch ioWatch;
@@ -677,7 +688,7 @@ Accept4Callback2(any_t argument)
 
 
 static void
-ConnectCallback1(any_t argument)
+ConnectCallback1(uintptr_t argument)
 {
     struct {
         struct IOWatch ioWatch;
@@ -704,7 +715,7 @@ ConnectCallback1(any_t argument)
 
 
 static void
-ConnectCallback2(any_t argument)
+ConnectCallback2(uintptr_t argument)
 {
     struct {
         struct IOWatch ioWatch;
@@ -723,7 +734,7 @@ ConnectCallback2(any_t argument)
 
 
 static void
-RecvCallback1(any_t argument)
+RecvCallback1(uintptr_t argument)
 {
     struct {
         struct IOWatch ioWatch;
@@ -756,7 +767,7 @@ RecvCallback1(any_t argument)
 
 
 static void
-RecvCallback2(any_t argument)
+RecvCallback2(uintptr_t argument)
 {
     struct {
         struct IOWatch ioWatch;
@@ -778,7 +789,7 @@ RecvCallback2(any_t argument)
 
 
 static void
-SendCallback1(any_t argument)
+SendCallback1(uintptr_t argument)
 {
     struct {
         struct IOWatch ioWatch;
@@ -811,7 +822,7 @@ SendCallback1(any_t argument)
 
 
 static void
-SendCallback2(any_t argument)
+SendCallback2(uintptr_t argument)
 {
     struct {
         struct IOWatch ioWatch;
@@ -833,7 +844,7 @@ SendCallback2(any_t argument)
 
 
 static void
-RecvFromCallback1(any_t argument)
+RecvFromCallback1(uintptr_t argument)
 {
     struct {
         struct IOWatch ioWatch;
@@ -869,7 +880,7 @@ RecvFromCallback1(any_t argument)
 
 
 static void
-RecvFromCallback2(any_t argument)
+RecvFromCallback2(uintptr_t argument)
 {
     struct {
         struct IOWatch ioWatch;
@@ -893,7 +904,7 @@ RecvFromCallback2(any_t argument)
 
 
 static void
-SendToCallback1(any_t argument)
+SendToCallback1(uintptr_t argument)
 {
     struct {
         struct IOWatch ioWatch;
@@ -929,7 +940,7 @@ SendToCallback1(any_t argument)
 
 
 static void
-SendToCallback2(any_t argument)
+SendToCallback2(uintptr_t argument)
 {
     struct {
         struct IOWatch ioWatch;
@@ -953,24 +964,24 @@ SendToCallback2(any_t argument)
 
 
 static void
-DoWork(void (*function)(any_t), any_t argument)
+DoWork(void (*function)(uintptr_t), uintptr_t argument)
 {
     struct Work work;
     ThreadPool_PostWork(&ThreadPool, &work, function, argument
-                        , (any_t)Scheduler_GetCurrentFiber(&Scheduler), DoWorkCallback);
+                        , (uintptr_t)Scheduler_GetCurrentFiber(&Scheduler), DoWorkCallback);
     Scheduler_SuspendCurrentFiber(&Scheduler);
 }
 
 
 static void
-DoWorkCallback(any_t argument)
+DoWorkCallback(uintptr_t argument)
 {
     Scheduler_ResumeFiber(&Scheduler, (struct Fiber *)argument);
 }
 
 
 static void
-GetAddrInfoWrapper(any_t argument)
+GetAddrInfoWrapper(uintptr_t argument)
 {
     struct {
         const char *hostName;

@@ -1,5 +1,6 @@
 #include "RBTree.h"
 
+#include <stddef.h>
 #include <assert.h>
 
 
@@ -92,7 +93,7 @@ RBTree_RemoveNode(struct RBTree *self, const struct RBTreeNode *node)
     }
 
     node1Child->parent = node1->parent;
-    bool isBroken = node1->color == RBTreeNodeBlack;
+    int isBroken = node1->color == RBTreeNodeBlack;
 
     if (node1 != node) {
         if (node->parent == &self->nil) {
@@ -118,8 +119,8 @@ RBTree_RemoveNode(struct RBTree *self, const struct RBTreeNode *node)
 
 
 struct RBTreeNode *
-RBTree_Search(const struct RBTree *self, any_t key, int (*nodeMatcher)(const struct RBTreeNode *
-                                                                       , any_t))
+RBTree_Search(const struct RBTree *self, uintptr_t key, int (*nodeMatcher)(const struct RBTreeNode *
+                                                                           , uintptr_t))
 {
     assert(self != NULL);
     assert(nodeMatcher != NULL);

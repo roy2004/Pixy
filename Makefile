@@ -13,7 +13,7 @@ OBJECTS = Async.o\
           Timer.o
 CPPFLAGS = -iquote Include -MMD -MT $@ -MF Build/$*.d -D_GNU_SOURCE
 #CPPFLAGS += -DNDEBUG
-CFLAGS = -std=c99 -Wall -Wextra -Werror
+CFLAGS = -std=c99 -pedantic -Wall -Wextra -Werror
 #CFLAGS += -O2
 ARFLAGS = rc
 
@@ -39,5 +39,7 @@ install: all
 	cp -r -T Include /usr/local/include/Pixy
 
 uninstall:
-	rm -f /usr/local/lib/libpixy.a
-	rm -r -f /usr/local/include/Pixy
+	rm /usr/local/lib/libpixy.a
+	rmdir -p --ignore-fail-on-non-empty /usr/local/lib
+	rm -r /usr/local/include/Pixy
+	rmdir -p --ignore-fail-on-non-empty /usr/local/include

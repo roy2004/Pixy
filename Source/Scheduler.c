@@ -2,6 +2,8 @@
 
 #include <stdlib.h>
 
+#include "Utility.h"
+
 
 #define FIBER_SIZE ((size_t)65536)
 
@@ -11,8 +13,8 @@ struct Fiber
     struct ListItem listItem;
     void *stack;
     jmp_buf *context;
-    void (*coroutine)(any_t);
-    any_t argument;
+    void (*coroutine)(uintptr_t);
+    uintptr_t argument;
 };
 
 
@@ -49,8 +51,8 @@ Scheduler_Finalize(const struct Scheduler *self)
 }
 
 
-bool
-Scheduler_CallCoroutine(struct Scheduler *self, void (*coroutine)(any_t), any_t argument)
+int
+Scheduler_CallCoroutine(struct Scheduler *self, void (*coroutine)(uintptr_t), uintptr_t argument)
 {
     assert(self != NULL);
     assert(coroutine != NULL);
@@ -60,7 +62,7 @@ Scheduler_CallCoroutine(struct Scheduler *self, void (*coroutine)(any_t), any_t 
         fiber = AllocateFiber();
 
         if (fiber == NULL) {
-            return false;
+            return -1;
         }
     } else {
         fiber = CONTAINER_OF(List_GetBack(&self->deadFiberListHead), struct Fiber, listItem);
@@ -72,7 +74,7 @@ Scheduler_CallCoroutine(struct Scheduler *self, void (*coroutine)(any_t), any_t 
     fiber->argument = argument;
     List_InsertBack(&self->readyFiberListHead, &fiber->listItem);
     ++self->fiberCount;
-    return true;
+    return 0;
 }
 
 
@@ -246,7 +248,7 @@ AllocateFiber(void)
     }
 
 #if defined __i386__ || defined __x86_64__
-    fiber = (struct Fiber *)((unsigned char *)fiber + FIBER_SIZE - sizeof *fiber);
+    fiber = (struct Fiber *)((char *)fiber + FIBER_SIZE - sizeof *fiber);
     fiber->stack = fiber;
 #else
 #error architecture not supported
@@ -259,7 +261,7 @@ static void
 FreeFiber(struct Fiber *fiber)
 {
 #if defined __i386__ || defined __x86_64__
-    fiber = (struct Fiber *)((unsigned char *)fiber + sizeof *fiber - FIBER_SIZE);
+    fiber = (struct Fiber *)((char *)fiber + sizeof *fiber - FIBER_SIZE);
 #else
 #error architecture not supported
 #endif

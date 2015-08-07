@@ -3,12 +3,13 @@
 
 #include <pthread.h>
 
-#include "Base.h"
+#include <stdint.h>
+
 #include "List.h"
 #include "IOPoller.h"
 
 
-#define __NUMBER_OF_WORKERS 4
+#define __NUMBER_OF_WORKERS 2
 
 
 struct ThreadPool
@@ -27,16 +28,16 @@ struct ThreadPool
 struct Work
 {
     struct ListItem listItem;
-    void (*function)(any_t);
-    any_t argument;
-    any_t data;
-    void (*callback)(any_t);
+    void (*function)(uintptr_t);
+    uintptr_t argument;
+    uintptr_t data;
+    void (*callback)(uintptr_t);
 };
 
 
-bool ThreadPool_Initialize(struct ThreadPool *, struct IOPoller *);
+int ThreadPool_Initialize(struct ThreadPool *, struct IOPoller *);
 void ThreadPool_Finalize(struct ThreadPool *);
 void ThreadPool_Start(struct ThreadPool *);
 void ThreadPool_Stop(struct ThreadPool *);
-void ThreadPool_PostWork(struct ThreadPool *, struct Work *, void (*)(any_t), any_t, any_t
-                         , void (*)(any_t));
+void ThreadPool_PostWork(struct ThreadPool *, struct Work *, void (*)(uintptr_t), uintptr_t
+                         , uintptr_t, void (*)(uintptr_t));

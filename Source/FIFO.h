@@ -1,14 +1,13 @@
 #pragma once
 
 
+#include <stddef.h>
 #include <assert.h>
-
-#include "Base.h"
 
 
 struct FIFO
 {
-    unsigned char *base;
+    char *base;
     size_t baseSize;
     ptrdiff_t rIndex;
     ptrdiff_t wIndex;
@@ -22,8 +21,8 @@ static inline size_t FIFO_GetBufferSize(const struct FIFO *);
 
 void FIFO_Initialize(struct FIFO *);
 void FIFO_Finalize(const struct FIFO *);
-bool FIFO_ShrinkToFit(struct FIFO *);
-bool FIFO_Write(struct FIFO *, const void *, size_t);
+int FIFO_ShrinkToFit(struct FIFO *);
+int FIFO_Write(struct FIFO *, const void *, size_t);
 size_t FIFO_Read(struct FIFO *, void *, size_t);
 
 

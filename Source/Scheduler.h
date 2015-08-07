@@ -1,10 +1,11 @@
 #pragma once
 
 
-#include <assert.h>
 #include <setjmp.h>
+#include <stdint.h>
+#include <stddef.h>
+#include <assert.h>
 
-#include "Base.h"
 #include "List.h"
 
 
@@ -26,7 +27,7 @@ static inline int Scheduler_GetFiberCount(const struct Scheduler *);
 
 void Scheduler_Initialize(struct Scheduler *);
 void Scheduler_Finalize(const struct Scheduler *);
-bool Scheduler_CallCoroutine(struct Scheduler *, void (*)(any_t), any_t);
+int Scheduler_CallCoroutine(struct Scheduler *, void (*)(uintptr_t), uintptr_t);
 void Scheduler_YieldCurrentFiber(struct Scheduler *);
 void Scheduler_SuspendCurrentFiber(struct Scheduler *);
 void Scheduler_ResumeFiber(struct Scheduler *, struct Fiber *);

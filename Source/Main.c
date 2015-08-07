@@ -1,8 +1,7 @@
-#include <assert.h>
+#include <stdint.h>
 #include <errno.h>
 #include <string.h>
 
-#include "Base.h"
 #include "Logging.h"
 #include "Scheduler.h"
 #include "IOPoller.h"
@@ -13,7 +12,7 @@
 
 int Main(int argc, char **argv);
 
-static void MainWrapper(any_t);
+static void MainWrapper(uintptr_t);
 static void Loop(void);
 
 
@@ -30,8 +29,7 @@ main(int argc, char **argv)
     IOPoller_Initialize(&IOPoller);
     Timer_Initialize(&Timer);
 
-    if (!ThreadPool_Initialize(&ThreadPool, &IOPoller)) {
-        assert(errno == ENOMEM);
+    if (ThreadPool_Initialize(&ThreadPool, &IOPoller) < 0) {
         LOG_FATAL_ERROR("`ThreadPool_Initialize()` failed: %s", strerror(errno));
     }
 
@@ -46,7 +44,7 @@ main(int argc, char **argv)
         .argv = argv
     };
 
-    Scheduler_CallCoroutine(&Scheduler, MainWrapper, (any_t)&context);
+    Scheduler_CallCoroutine(&Scheduler, MainWrapper, (uintptr_t)&context);
     Loop();
     ThreadPool_Stop(&ThreadPool);
     ThreadPool_Finalize(&ThreadPool);
@@ -58,7 +56,7 @@ main(int argc, char **argv)
 
 
 static void
-MainWrapper(any_t argument)
+MainWrapper(uintptr_t argument)
 {
     struct {
         int argc;
@@ -83,22 +81,20 @@ Loop(void)
             break;
         }
 
-        bool ok;
+        int result;
 
         do {
-            ok = IOPoller_Tick(&IOPoller, Timer_CalculateWaitTime(&Timer), &async);
-        } while (!ok && errno == EINTR);
+            result = IOPoller_Tick(&IOPoller, Timer_CalculateWaitTime(&Timer), &async);
+        } while (result < 0 && errno == EINTR);
 
-        if (!ok) {
-            assert(errno == ENOMEM);
-            // TODO
+        if (result < 0) {
+            LOG_FATAL_ERROR("`IOPoller_Tick()` failed: %s", strerror(errno));
         }
 
         Async_DispatchCalls(&async);
 
-        if (!Timer_Tick(&Timer, &async)) {
-            assert(errno == ENOMEM);
-            // TODO
+        if (Timer_Tick(&Timer, &async) < 0) {
+            LOG_FATAL_ERROR("`IOPoller_Tick()` failed: %s", strerror(errno));
         }
 
         Async_DispatchCalls(&async);

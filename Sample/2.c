@@ -15,8 +15,8 @@ Output:
 #include <Pixy/Runtime.h>
 
 
-static void Writer(any_t);
-static void Reader(any_t);
+static void Writer(uintptr_t);
+static void Reader(uintptr_t);
 
 
 int
@@ -24,14 +24,14 @@ Main(int argc, char **argv)
 {
     int fds[2];
     Pipe2(fds, 0);
-    Call(Reader, (any_t)fds[0]);
-    Call(Writer, (any_t)fds[1]);
+    Call(Reader, (uintptr_t)fds[0]);
+    Call(Writer, (uintptr_t)fds[1]);
     return 0;
 }
 
 
 static void
-Reader(any_t argument)
+Reader(uintptr_t argument)
 {
     int fd = (int)argument;
     int i;
@@ -52,7 +52,7 @@ Reader(any_t argument)
 
 
 static void
-Writer(any_t argument)
+Writer(uintptr_t argument)
 {
     int fd = (int)argument;
     int i;

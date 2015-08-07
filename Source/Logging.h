@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "Base.h"
+#include "Utility.h"
 #include "Atomic.h"
 
 
@@ -36,7 +36,7 @@
                                                                                                 \
         fprintf(stderr, "(Pixy) " #LEVEL ": " __FILE__ ":" STRINGIZE(__LINE__) ": " FORMAT "\n" \
                 , ##__VA_ARGS__);                                                               \
-    } while (false)
+    } while (0)
 
 
 enum LoggingLevel

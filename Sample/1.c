@@ -15,25 +15,26 @@ Output:
 */
 
 
+#include <stdint.h>
 #include <stdio.h>
 
 #include <Pixy/Runtime.h>
 
 
-static void Coroutine(any_t);
+static void Coroutine(uintptr_t);
 
 
 int
 Main(int argc, char **argv)
 {
-    Call(Coroutine, (any_t)'A');
-    Call(Coroutine, (any_t)'B');
+    Call(Coroutine, (uintptr_t)'A');
+    Call(Coroutine, (uintptr_t)'B');
     return 0;
 }
 
 
 static void
-Coroutine(any_t argument)
+Coroutine(uintptr_t argument)
 {
     char who = (char)argument;
     printf("%c - 1\n", who);
