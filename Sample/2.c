@@ -24,8 +24,8 @@ Main(int argc, char **argv)
 {
     int fds[2];
     Pipe2(fds, 0);
-    Call(Reader, (uintptr_t)fds[0]);
-    Call(Writer, (uintptr_t)fds[1]);
+    Call(Reader, fds[0]);
+    Call(Writer, fds[1]);
     return 0;
 }
 
@@ -33,7 +33,7 @@ Main(int argc, char **argv)
 static void
 Reader(uintptr_t argument)
 {
-    int fd = (int)argument;
+    int fd = argument;
     int i;
 
     for (;;) {
@@ -54,7 +54,7 @@ Reader(uintptr_t argument)
 static void
 Writer(uintptr_t argument)
 {
-    int fd = (int)argument;
+    int fd = argument;
     int i;
 
     for (i = 0; i < 5; ++i) {

@@ -21,8 +21,8 @@ static void *ThreadStart(void *);
 static void xpipe(int [2]);
 static void xclose(int);
 static int xfcntl(int, int, int);
-static ssize_t xread(int, void *, size_t);
-static ssize_t xwrite(int, const void *, size_t);
+static size_t xread(int, void *, size_t);
+static size_t xwrite(int, const void *, size_t);
 static void xpthread_mutex_init(pthread_mutex_t *, const pthread_mutexattr_t *);
 static void xpthread_mutex_destroy(pthread_mutex_t *);
 static void xpthread_mutex_lock(pthread_mutex_t *);
@@ -230,7 +230,7 @@ xfcntl(int fd, int cmd, int arg)
 }
 
 
-static ssize_t
+static size_t
 xread(int fd, void *buf, size_t count)
 {
     ssize_t nbytes;
@@ -247,7 +247,7 @@ xread(int fd, void *buf, size_t count)
 }
 
 
-static ssize_t
+static size_t
 xwrite(int fd, const void *buf, size_t count)
 {
     ssize_t nbytes;

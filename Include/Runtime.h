@@ -44,7 +44,6 @@ int Close(int fd);
 int GetAddrInfo(const char *hostName, const char *serviceName, const struct addrinfo *hints
                 , struct addrinfo **result);
 
-
 #ifdef __cplusplus
 } // extern "C"
 #endif
