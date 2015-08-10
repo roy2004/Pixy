@@ -1,10 +1,10 @@
 OBJECTS = Async.o\
           FIFO.o\
           Heap.o\
+          IO.o\
           IOPoller.o\
           List.o\
           Logging.o\
-          Main.o\
           MemoryPool.o\
           RBTree.o\
           Runtime.o\
