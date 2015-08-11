@@ -27,8 +27,8 @@ static void Coroutine(uintptr_t);
 int
 Main(int argc, char **argv)
 {
-    Call(Coroutine, (uintptr_t)'A');
-    Call(Coroutine, (uintptr_t)'B');
+    Call(Coroutine, 'A');
+    Call(Coroutine, 'B');
     return 0;
 }
 
@@ -36,7 +36,7 @@ Main(int argc, char **argv)
 static void
 Coroutine(uintptr_t argument)
 {
-    char who = (char)argument;
+    char who = argument;
     printf("%c - 1\n", who);
     Yield();
     printf("%c - 2\n", who);
