@@ -18,7 +18,7 @@ struct LIFO
 };
 
 
-static inline const void *LIFO_GetData(const struct LIFO *);
+static inline void *LIFO_GetData(const struct LIFO *);
 static inline size_t LIFO_GetDataSize(const struct LIFO *);
 static inline void *LIFO_GetBuffer(const struct LIFO *);
 static inline size_t LIFO_GetBufferSize(const struct LIFO *);

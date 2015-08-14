@@ -5,6 +5,7 @@ OBJECTS = Async.o\
           IOPoller.o\
           List.o\
           Logging.o\
+          Mailbox.o\
           MemoryPool.o\
           RBTree.o\
           Runtime.o\
