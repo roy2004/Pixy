@@ -37,10 +37,10 @@ Producer(uintptr_t argument)
     int i;
 
     for (i = 1; i <= 5; ++i) {
-        Mailbox_PutMail(&mailbox, &i, 1);
+        Mailbox_PutMail(&mailbox, (uintptr_t)&i, 1);
     }
 
-    Mailbox_PutMail(&mailbox, NULL, 0);
+    Mailbox_PutMail(&mailbox, 0, 0);
 }
 
 

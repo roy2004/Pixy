@@ -43,7 +43,7 @@ Mailbox_Initialize(struct Mailbox *self)
 
 
 void
-Mailbox_PutMail(struct Mailbox *self, void *message, ptrdiff_t messageLength)
+Mailbox_PutMail(struct Mailbox *self, uintptr_t message, ptrdiff_t messageLength)
 {
     if (self == NULL) {
         abort();
