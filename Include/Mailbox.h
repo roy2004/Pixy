@@ -27,12 +27,12 @@ struct Mailbox
 struct Mail
 {
     void *message;
-    size_t messageSize;
+    ptrdiff_t messageLength;
 };
 
 
 void Mailbox_Initialize(struct Mailbox *self);
-void Mailbox_PutMail(struct Mailbox *self, void *message, size_t messageSize);
+void Mailbox_PutMail(struct Mailbox *self, void *message, ptrdiff_t messageLength);
 struct Mail *Mailbox_GetMail(struct Mailbox *self);
 struct Mail *Mailbox_TryGetMail(struct Mailbox *self);
 void Mail_Delete(const struct Mail *mail);

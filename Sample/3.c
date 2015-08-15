@@ -37,7 +37,7 @@ Producer(uintptr_t argument)
     int i;
 
     for (i = 1; i <= 5; ++i) {
-        Mailbox_PutMail(&mailbox, &i, sizeof i);
+        Mailbox_PutMail(&mailbox, &i, 1);
     }
 
     Mailbox_PutMail(&mailbox, NULL, 0);
@@ -52,7 +52,7 @@ Consumer(uintptr_t argument)
     for (;;) {
         struct Mail *mail = Mailbox_GetMail(mailbox);
 
-        if (mail->message == NULL) {
+        if (mail->messageLength == 0) {
             Mail_Delete(mail);
             break;
         }

@@ -43,7 +43,7 @@ Mailbox_Initialize(struct Mailbox *self)
 
 
 void
-Mailbox_PutMail(struct Mailbox *self, void *message, size_t messageSize)
+Mailbox_PutMail(struct Mailbox *self, void *message, ptrdiff_t messageLength)
 {
     if (self == NULL) {
         abort();
@@ -54,7 +54,7 @@ Mailbox_PutMail(struct Mailbox *self, void *message, size_t messageSize)
 
         .mail = {
             .message = message,
-            .messageSize = messageSize
+            .messageLength = messageLength
         }
     };
 
