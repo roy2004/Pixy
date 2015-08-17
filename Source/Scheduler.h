@@ -34,7 +34,7 @@ static inline int Scheduler_GetFiberCount(const struct Scheduler *);
 void Scheduler_Initialize(struct Scheduler *);
 void Scheduler_Finalize(const struct Scheduler *);
 int Scheduler_AddFiber(struct Scheduler *, void (*)(uintptr_t), uintptr_t);
-int Scheduler_RunFiber(struct Scheduler *, void (*)(uintptr_t), uintptr_t);
+int Scheduler_AddAndRunFiber(struct Scheduler *, void (*)(uintptr_t), uintptr_t);
 void Scheduler_YieldCurrentFiber(struct Scheduler *);
 void Scheduler_SuspendCurrentFiber(struct Scheduler *);
 void Scheduler_ResumeFiber(struct Scheduler *, struct Fiber *);

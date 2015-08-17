@@ -84,7 +84,7 @@ Scheduler_AddFiber(struct Scheduler *self, void (*function)(uintptr_t), uintptr_
 
 
 int
-Scheduler_RunFiber(struct Scheduler *self, void (*function)(uintptr_t), uintptr_t argument)
+Scheduler_AddAndRunFiber(struct Scheduler *self, void (*function)(uintptr_t), uintptr_t argument)
 {
     assert(self != NULL && self->activeFiber != NULL);
 

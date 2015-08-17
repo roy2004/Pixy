@@ -74,14 +74,14 @@ AddFiber(void (*function)(uintptr_t), uintptr_t argument)
 
 
 int
-RunFiber(void (*function)(uintptr_t), uintptr_t argument)
+AddAndRunFiber(void (*function)(uintptr_t), uintptr_t argument)
 {
     if (function == NULL) {
         errno = EINVAL;
         return -1;
     }
 
-    return Scheduler_RunFiber(&Scheduler, function, argument);
+    return Scheduler_AddAndRunFiber(&Scheduler, function, argument);
 }
 
 

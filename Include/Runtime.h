@@ -17,7 +17,7 @@ extern "C" {
 
 int FiberMain(int argc, char **argv);
 int AddFiber(void (*function)(uintptr_t), uintptr_t argument);
-int RunFiber(void (*function)(uintptr_t), uintptr_t argument);
+int AddAndRunFiber(void (*function)(uintptr_t), uintptr_t argument);
 void YieldCurrentFiber(void);
 void ExitCurrentFiber(void) NORETURN;
 int SleepCurrentFiber(int duration);
