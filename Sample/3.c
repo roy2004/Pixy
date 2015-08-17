@@ -21,9 +21,9 @@ static void Consumer(uintptr_t);
 
 
 int
-Main(int argc, char **argv)
+FiberMain(int argc, char **argv)
 {
-    Call(Producer, 0);
+    AddFiber(Producer, 0);
     return 0;
 }
 
@@ -33,7 +33,7 @@ Producer(uintptr_t argument)
 {
     struct Mailbox mailbox;
     Mailbox_Initialize(&mailbox);
-    Call(Consumer, (uintptr_t)&mailbox);
+    AddFiber(Consumer, (uintptr_t)&mailbox);
     int i;
 
     for (i = 1; i <= 5; ++i) {

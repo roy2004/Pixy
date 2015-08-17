@@ -17,7 +17,7 @@
 #include "Logging.h"
 
 
-static void MainWrapper(uintptr_t);
+static void FiberMainWrapper(uintptr_t);
 static void Loop(void);
 static void SleepCallback(uintptr_t);
 
@@ -50,7 +50,7 @@ main(int argc, char **argv)
         .argv = argv
     };
 
-    Scheduler_CallCoroutine(&Scheduler, MainWrapper, (uintptr_t)&context);
+    Scheduler_AddFiber(&Scheduler, FiberMainWrapper, (uintptr_t)&context);
     Loop();
     ThreadPool_Stop(&ThreadPool);
     ThreadPool_Finalize(&ThreadPool);
@@ -62,33 +62,45 @@ main(int argc, char **argv)
 
 
 int
-Call(void (*coroutine)(uintptr_t), uintptr_t argument)
+AddFiber(void (*function)(uintptr_t), uintptr_t argument)
 {
-    if (coroutine == NULL) {
+    if (function == NULL) {
         errno = EINVAL;
         return -1;
     }
 
-    return Scheduler_CallCoroutine(&Scheduler, coroutine, argument);
+    return Scheduler_AddFiber(&Scheduler, function, argument);
+}
+
+
+int
+RunFiber(void (*function)(uintptr_t), uintptr_t argument)
+{
+    if (function == NULL) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    return Scheduler_RunFiber(&Scheduler, function, argument);
 }
 
 
 void
-Yield(void)
+YieldCurrentFiber(void)
 {
     Scheduler_YieldCurrentFiber(&Scheduler);
 }
 
 
-void
-Exit(void)
+NORETURN void
+ExitCurrentFiber(void)
 {
     Scheduler_ExitCurrentFiber(&Scheduler);
 }
 
 
 int
-Sleep(int duration)
+SleepCurrentFiber(int duration)
 {
     struct Timeout timeout;
 
@@ -103,7 +115,7 @@ Sleep(int duration)
 
 
 static void
-MainWrapper(uintptr_t argument)
+FiberMainWrapper(uintptr_t argument)
 {
     struct {
         int argc;
@@ -111,7 +123,7 @@ MainWrapper(uintptr_t argument)
         int status;
     } *context = (void *)argument;
 
-    context->status = Main(context->argc, context->argv);
+    context->status = FiberMain(context->argc, context->argv);
 }
 
 

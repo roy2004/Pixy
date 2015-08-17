@@ -12,6 +12,7 @@
 #include <assert.h>
 
 #include "List.h"
+#include "Noreturn.h"
 
 
 struct Fiber;
@@ -20,7 +21,7 @@ struct Fiber;
 struct Scheduler
 {
     jmp_buf *context;
-    struct Fiber *runningFiber;
+    struct Fiber *activeFiber;
     struct ListItem readyFiberListHead;
     struct ListItem deadFiberListHead;
     int fiberCount;
@@ -32,19 +33,20 @@ static inline int Scheduler_GetFiberCount(const struct Scheduler *);
 
 void Scheduler_Initialize(struct Scheduler *);
 void Scheduler_Finalize(const struct Scheduler *);
-int Scheduler_CallCoroutine(struct Scheduler *, void (*)(uintptr_t), uintptr_t);
+int Scheduler_AddFiber(struct Scheduler *, void (*)(uintptr_t), uintptr_t);
+int Scheduler_RunFiber(struct Scheduler *, void (*)(uintptr_t), uintptr_t);
 void Scheduler_YieldCurrentFiber(struct Scheduler *);
 void Scheduler_SuspendCurrentFiber(struct Scheduler *);
 void Scheduler_ResumeFiber(struct Scheduler *, struct Fiber *);
-void Scheduler_ExitCurrentFiber(struct Scheduler *);
+void Scheduler_ExitCurrentFiber(struct Scheduler *) NORETURN;
 void Scheduler_Tick(struct Scheduler *);
 
 
 static inline struct Fiber *
 Scheduler_GetCurrentFiber(const struct Scheduler *self)
 {
-    assert(self != NULL && self->runningFiber != NULL);
-    return self->runningFiber;
+    assert(self != NULL && self->activeFiber != NULL);
+    return self->activeFiber;
 }
 
 

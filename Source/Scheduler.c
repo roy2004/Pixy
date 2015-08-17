@@ -18,24 +18,24 @@ struct Fiber
     struct ListItem listItem;
     void *stack;
     jmp_buf *context;
-    void (*coroutine)(uintptr_t);
+    void (*function)(uintptr_t);
     uintptr_t argument;
 };
 
 
-static void Scheduler_RunFiber(struct Scheduler *, struct Fiber *);
-static void Scheduler_FiberStart(struct Scheduler *, struct Fiber *);
-static void Scheduler_Return(struct Scheduler *);
+static void Scheduler_SwitchToFiber(struct Scheduler *, struct Fiber *) NORETURN;
+static void Scheduler_FiberStart(struct Scheduler *, struct Fiber *) NORETURN;
+static void Scheduler_SwitchTo(struct Scheduler *) NORETURN;
 
-static struct Fiber *AllocateFiber(void);
-static void FreeFiber(struct Fiber *);
+static struct Fiber *Fiber_Allocate(void);
+static void Fiber_Free(struct Fiber *);
 
 
 void
 Scheduler_Initialize(struct Scheduler *self)
 {
     assert(self != NULL);
-    self->runningFiber = NULL;
+    self->activeFiber = NULL;
     List_Initialize(&self->readyFiberListHead);
     List_Initialize(&self->deadFiberListHead);
     self->fiberCount = 0;
@@ -45,26 +45,26 @@ Scheduler_Initialize(struct Scheduler *self)
 void
 Scheduler_Finalize(const struct Scheduler *self)
 {
-    assert(self != NULL && self->runningFiber == NULL);
+    assert(self != NULL && self->activeFiber == NULL);
     struct ListItem *fiberListItem = List_GetBack(&self->readyFiberListHead);
 
     while (fiberListItem != &self->readyFiberListHead) {
         struct Fiber *fiber = CONTAINER_OF(fiberListItem, struct Fiber, listItem);
         fiberListItem = ListItem_GetPrev(fiberListItem);
-        FreeFiber(fiber);
+        Fiber_Free(fiber);
     }
 }
 
 
 int
-Scheduler_CallCoroutine(struct Scheduler *self, void (*coroutine)(uintptr_t), uintptr_t argument)
+Scheduler_AddFiber(struct Scheduler *self, void (*function)(uintptr_t), uintptr_t argument)
 {
     assert(self != NULL);
-    assert(coroutine != NULL);
+    assert(function != NULL);
     struct Fiber *fiber;
 
     if (List_IsEmpty(&self->deadFiberListHead)) {
-        fiber = AllocateFiber();
+        fiber = Fiber_Allocate();
 
         if (fiber == NULL) {
             return -1;
@@ -75,7 +75,7 @@ Scheduler_CallCoroutine(struct Scheduler *self, void (*coroutine)(uintptr_t), ui
     }
 
     fiber->context = NULL;
-    fiber->coroutine = coroutine;
+    fiber->function = function;
     fiber->argument = argument;
     List_InsertBack(&self->readyFiberListHead, &fiber->listItem);
     ++self->fiberCount;
@@ -83,10 +83,34 @@ Scheduler_CallCoroutine(struct Scheduler *self, void (*coroutine)(uintptr_t), ui
 }
 
 
+int
+Scheduler_RunFiber(struct Scheduler *self, void (*function)(uintptr_t), uintptr_t argument)
+{
+    assert(self != NULL && self->activeFiber != NULL);
+
+    if (Scheduler_AddFiber(self, function, argument) < 0) {
+        return -1;
+    }
+
+    jmp_buf context;
+
+    if (setjmp(context) != 0) {
+        return 0;
+    }
+
+    self->activeFiber->context = &context;
+    List_InsertFront(&self->readyFiberListHead, &self->activeFiber->listItem);
+    struct Fiber *fiber = CONTAINER_OF(List_GetBack(&self->readyFiberListHead), struct Fiber
+                                       , listItem);
+    ListItem_Remove(&fiber->listItem);
+    Scheduler_SwitchToFiber(self, fiber);
+}
+
+
 void
 Scheduler_YieldCurrentFiber(struct Scheduler *self)
 {
-    assert(self != NULL && self->runningFiber != NULL);
+    assert(self != NULL && self->activeFiber != NULL);
 
     if (List_IsEmpty(&self->readyFiberListHead)) {
         return;
@@ -98,19 +122,19 @@ Scheduler_YieldCurrentFiber(struct Scheduler *self)
         return;
     }
 
-    self->runningFiber->context = &context;
-    List_InsertBack(&self->readyFiberListHead, &self->runningFiber->listItem);
+    self->activeFiber->context = &context;
+    List_InsertBack(&self->readyFiberListHead, &self->activeFiber->listItem);
     struct Fiber *fiber = CONTAINER_OF(List_GetFront(&self->readyFiberListHead), struct Fiber
                                        , listItem);
     ListItem_Remove(&fiber->listItem);
-    Scheduler_RunFiber(self, fiber);
+    Scheduler_SwitchToFiber(self, fiber);
 }
 
 
 void
 Scheduler_SuspendCurrentFiber(struct Scheduler *self)
 {
-    assert(self != NULL && self->runningFiber != NULL);
+    assert(self != NULL && self->activeFiber != NULL);
 
     jmp_buf context;
 
@@ -118,15 +142,15 @@ Scheduler_SuspendCurrentFiber(struct Scheduler *self)
         return;
     }
 
-    self->runningFiber->context = &context;
+    self->activeFiber->context = &context;
 
     if (List_IsEmpty(&self->readyFiberListHead)) {
-        Scheduler_Return(self);
+        Scheduler_SwitchTo(self);
     } else {
         struct Fiber *fiber = CONTAINER_OF(List_GetFront(&self->readyFiberListHead), struct Fiber
                                            , listItem);
         ListItem_Remove(&fiber->listItem);
-        Scheduler_RunFiber(self, fiber);
+        Scheduler_SwitchToFiber(self, fiber);
     }
 }
 
@@ -142,17 +166,17 @@ Scheduler_ResumeFiber(struct Scheduler *self, struct Fiber *fiber)
 void
 Scheduler_ExitCurrentFiber(struct Scheduler *self)
 {
-    assert(self != NULL && self->runningFiber != NULL);
-    List_InsertBack(&self->deadFiberListHead, &self->runningFiber->listItem);
+    assert(self != NULL && self->activeFiber != NULL);
+    List_InsertBack(&self->deadFiberListHead, &self->activeFiber->listItem);
     --self->fiberCount;
 
     if (List_IsEmpty(&self->readyFiberListHead)) {
-        Scheduler_Return(self);
+        Scheduler_SwitchTo(self);
     } else {
         struct Fiber *fiber = CONTAINER_OF(List_GetFront(&self->readyFiberListHead), struct Fiber
                                            , listItem);
         ListItem_Remove(&fiber->listItem);
-        Scheduler_RunFiber(self, fiber);
+        Scheduler_SwitchToFiber(self, fiber);
     }
 }
 
@@ -160,7 +184,7 @@ Scheduler_ExitCurrentFiber(struct Scheduler *self)
 void
 Scheduler_Tick(struct Scheduler *self)
 {
-    assert(self != NULL && self->runningFiber == NULL);
+    assert(self != NULL && self->activeFiber == NULL);
 
     if (List_IsEmpty(&self->readyFiberListHead)) {
         return;
@@ -173,7 +197,7 @@ Scheduler_Tick(struct Scheduler *self)
         struct Fiber *fiber = CONTAINER_OF(List_GetFront(&self->readyFiberListHead), struct Fiber
                                            , listItem);
         ListItem_Remove(&fiber->listItem);
-        Scheduler_RunFiber(self, fiber);
+        Scheduler_SwitchToFiber(self, fiber);
     } else {
         struct ListItem *fiberListItem = List_GetBack(&self->deadFiberListHead);
 
@@ -184,7 +208,7 @@ Scheduler_Tick(struct Scheduler *self)
         do {
             struct Fiber *fiber = CONTAINER_OF(fiberListItem, struct Fiber, listItem);
             fiberListItem = ListItem_GetPrev(fiberListItem);
-            FreeFiber(fiber);
+            Fiber_Free(fiber);
         } while (fiberListItem != &self->deadFiberListHead);
 
         List_Initialize(&self->deadFiberListHead);
@@ -193,9 +217,9 @@ Scheduler_Tick(struct Scheduler *self)
 
 
 static void
-Scheduler_RunFiber(struct Scheduler *self, struct Fiber *fiber)
+Scheduler_SwitchToFiber(struct Scheduler *self, struct Fiber *fiber)
 {
-    self->runningFiber = fiber;
+    self->activeFiber = fiber;
 
     if (fiber->context == NULL) {
         __asm__ __volatile__ (
@@ -208,7 +232,6 @@ Scheduler_RunFiber(struct Scheduler *self, struct Fiber *fiber)
             "jmpl\t*%3"
             :
             : "r"(fiber->stack), "r"(self), "r"(fiber), "r"(Scheduler_FiberStart)
-            : "memory"
 #elif defined __x86_64__
             "movq\t$0, %%rbp\n\t"
             "movq\t%0, %%rsp\n\t"
@@ -216,11 +239,12 @@ Scheduler_RunFiber(struct Scheduler *self, struct Fiber *fiber)
             "jmpq\t*%3"
             :
             : "r"(fiber->stack), "D"(self), "S"(fiber), "r"(Scheduler_FiberStart)
-            : "memory"
 #else
 #error architecture not supported
 #endif
         );
+
+        __builtin_unreachable();
     } else {
         longjmp(*fiber->context, 1);
     }
@@ -230,21 +254,21 @@ Scheduler_RunFiber(struct Scheduler *self, struct Fiber *fiber)
 static void
 Scheduler_FiberStart(struct Scheduler *self, struct Fiber *fiber)
 {
-    fiber->coroutine(fiber->argument);
+    fiber->function(fiber->argument);
     Scheduler_ExitCurrentFiber(self);
 }
 
 
 static void
-Scheduler_Return(struct Scheduler *self)
+Scheduler_SwitchTo(struct Scheduler *self)
 {
-    self->runningFiber = NULL;
+    self->activeFiber = NULL;
     longjmp(*self->context, 1);
 }
 
 
 static struct Fiber *
-AllocateFiber(void)
+Fiber_Allocate(void)
 {
     struct Fiber *fiber = malloc(FIBER_SIZE);
 
@@ -263,7 +287,7 @@ AllocateFiber(void)
 
 
 static void
-FreeFiber(struct Fiber *fiber)
+Fiber_Free(struct Fiber *fiber)
 {
 #if defined __i386__ || defined __x86_64__
     fiber = (struct Fiber *)((char *)fiber + sizeof *fiber - FIBER_SIZE);

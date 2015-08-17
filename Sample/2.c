@@ -21,12 +21,12 @@ static void Reader(uintptr_t);
 
 
 int
-Main(int argc, char **argv)
+FiberMain(int argc, char **argv)
 {
     int fds[2];
     Pipe2(fds, 0);
-    Call(Reader, fds[0]);
-    Call(Writer, fds[1]);
+    AddFiber(Reader, fds[0]);
+    AddFiber(Writer, fds[1]);
     return 0;
 }
 
@@ -54,7 +54,7 @@ Writer(uintptr_t argument)
 
     for (i = 0; i < 5; ++i) {
         Write(fd, message, sizeof message, -1);
-        Sleep(1000);
+        SleepCurrentFiber(1000);
     }
 
     Close(fd);

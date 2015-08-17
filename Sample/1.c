@@ -21,29 +21,29 @@ Output:
 #include <Pixy/Runtime.h>
 
 
-static void Coroutine(uintptr_t);
+static void Foo(uintptr_t);
 
 
 int
-Main(int argc, char **argv)
+FiberMain(int argc, char **argv)
 {
-    Call(Coroutine, 'A');
-    Call(Coroutine, 'B');
+    AddFiber(Foo, 'A');
+    AddFiber(Foo, 'B');
     return 0;
 }
 
 
 static void
-Coroutine(uintptr_t argument)
+Foo(uintptr_t argument)
 {
     char who = argument;
     printf("%c - 1\n", who);
-    Yield();
+    YieldCurrentFiber();
     printf("%c - 2\n", who);
-    Yield();
+    YieldCurrentFiber();
     printf("%c - 3\n", who);
-    Yield();
+    YieldCurrentFiber();
     puts("Wait 2 seconds...");
-    Sleep(2000);
+    SleepCurrentFiber(2000);
     puts("Done!");
 }
