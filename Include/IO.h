@@ -25,14 +25,14 @@ ssize_t ReadV(int fd, const struct iovec *vector, int vectorLength, int timeout)
 ssize_t WriteV(int fd, const struct iovec *vector, int vectorLength, int timeout);
 
 int Socket(int domain, int type, int protocol);
-int Accept4(int fd, struct sockaddr *address, socklen_t *addressSize, int flags, int timeout);
-int Connect(int fd, const struct sockaddr *address, socklen_t addressSize, int timeout);
+int Accept4(int fd, struct sockaddr *name, socklen_t *nameSize, int flags, int timeout);
+int Connect(int fd, const struct sockaddr *name, socklen_t nameSize, int timeout);
 ssize_t Recv(int fd, void *buffer, size_t bufferSize, int flags, int timeout);
 ssize_t Send(int fd, const void *data, size_t dataSize, int flags, int timeout);
-ssize_t RecvFrom(int fd, void *buffer, size_t bufferSize, int flags, struct sockaddr *address
-                 , socklen_t *addressSize, int timeout);
-ssize_t SendTo(int fd, const void *data, size_t dataSize, int flags, const struct sockaddr *address
-               , socklen_t addressSize, int timeout);
+ssize_t RecvFrom(int fd, void *buffer, size_t bufferSize, int flags, struct sockaddr *name
+                 , socklen_t *nameSize, int timeout);
+ssize_t SendTo(int fd, const void *data, size_t dataSize, int flags, const struct sockaddr *name
+               , socklen_t nameSize, int timeout);
 ssize_t RecvMsg(int fd, struct msghdr *message, int flags, int timeout);
 ssize_t SendMsg(int fd, const struct msghdr *message, int flags, int timeout);
 
@@ -40,7 +40,7 @@ int Close(int fd);
 
 int GetAddrInfo(const char *hostName, const char *serviceName, const struct addrinfo *hints
                 , struct addrinfo **result);
-int GetNameInfo(const struct sockaddr *address, socklen_t addressSize, char *hostName
+int GetNameInfo(const struct sockaddr *name, socklen_t nameSize, char *hostName
                 , socklen_t hostNameSize, char *serviceName, socklen_t serviceNameSize, int flags);
 
 #ifdef __cplusplus

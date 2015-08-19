@@ -119,13 +119,13 @@ Socket(int domain, int type, int protocol)
 
 
 int
-Accept4(int fd, struct sockaddr *address, socklen_t *addressSize, int flags, int timeout)
+Accept4(int fd, struct sockaddr *name, socklen_t *nameSize, int flags, int timeout)
 {
     for (;;) {
         int subFD;
 
         do {
-            subFD = accept4(fd, address, addressSize, flags | O_NONBLOCK);
+            subFD = accept4(fd, name, nameSize, flags | O_NONBLOCK);
         } while (subFD < 0 && errno == EINTR);
 
         if (subFD >= 0) {
@@ -140,9 +140,9 @@ Accept4(int fd, struct sockaddr *address, socklen_t *addressSize, int flags, int
 
 
 int
-Connect(int fd, const struct sockaddr *address, socklen_t addressSize, int timeout)
+Connect(int fd, const struct sockaddr *name, socklen_t nameSize, int timeout)
 {
-    if (connect(fd, address, addressSize) < 0) {
+    if (connect(fd, name, nameSize) < 0) {
         if ((errno != EINTR && errno != EINPROGRESS) || WaitForFD(fd, IOWritable, timeout) < 0) {
             return -1;
         }
@@ -206,8 +206,8 @@ Send(int fd, const void *data, size_t dataSize, int flags, int timeout)
 
 
 ssize_t
-RecvFrom(int fd, void *buffer, size_t bufferSize, int flags, struct sockaddr *address
-         , socklen_t *addressSize, int timeout)
+RecvFrom(int fd, void *buffer, size_t bufferSize, int flags, struct sockaddr *name
+         , socklen_t *nameSize, int timeout)
 {
     struct iovec vector = {
         .iov_base = buffer,
@@ -215,8 +215,8 @@ RecvFrom(int fd, void *buffer, size_t bufferSize, int flags, struct sockaddr *ad
     };
 
     struct msghdr message = {
-        .msg_name = address,
-        .msg_namelen = *addressSize,
+        .msg_name = name,
+        .msg_namelen = *nameSize,
         .msg_iov = &vector,
         .msg_iovlen = 1,
         .msg_control = NULL,
@@ -225,14 +225,14 @@ RecvFrom(int fd, void *buffer, size_t bufferSize, int flags, struct sockaddr *ad
     };
 
     ssize_t numberOfBytes = RecvMsg(fd, &message, flags, timeout);
-    *addressSize = message.msg_namelen;
+    *nameSize = message.msg_namelen;
     return numberOfBytes;
 }
 
 
 ssize_t
-SendTo(int fd, const void *data, size_t dataSize, int flags, const struct sockaddr *address
-       , socklen_t addressSize, int timeout)
+SendTo(int fd, const void *data, size_t dataSize, int flags, const struct sockaddr *name
+       , socklen_t nameSize, int timeout)
 {
     struct iovec vector = {
         .iov_base = (void *)data,
@@ -240,8 +240,8 @@ SendTo(int fd, const void *data, size_t dataSize, int flags, const struct sockad
     };
 
     struct msghdr message = {
-        .msg_name = (struct sockaddr *)address,
-        .msg_namelen = addressSize,
+        .msg_name = (struct sockaddr *)name,
+        .msg_namelen = nameSize,
         .msg_iov = &vector,
         .msg_iovlen = 1,
         .msg_control = NULL,
@@ -332,12 +332,12 @@ GetAddrInfo(const char *hostName, const char *serviceName, const struct addrinfo
 
 
 int
-GetNameInfo(const struct sockaddr *address, socklen_t addressSize, char *hostName
-            , socklen_t hostNameSize, char *serviceName, socklen_t serviceNameSize, int flags)
+GetNameInfo(const struct sockaddr *name, socklen_t nameSize, char *hostName, socklen_t hostNameSize
+            , char *serviceName, socklen_t serviceNameSize, int flags)
 {
     struct {
-        const struct sockaddr *address;
-        socklen_t addressSize;
+        const struct sockaddr *name;
+        socklen_t nameSize;
         char *hostName;
         socklen_t hostNameSize;
         char *serviceName;
@@ -345,8 +345,8 @@ GetNameInfo(const struct sockaddr *address, socklen_t addressSize, char *hostNam
         int flags;
         int errorCode;
     } context = {
-        .address = address,
-        .addressSize = addressSize,
+        .name = name,
+        .nameSize = nameSize,
         .hostName = hostName,
         .hostNameSize = hostNameSize,
         .serviceName = serviceName,
@@ -466,8 +466,8 @@ static void
 GetNameInfoWrapper(uintptr_t argument)
 {
     struct {
-        const struct sockaddr *address;
-        socklen_t addressSize;
+        const struct sockaddr *name;
+        socklen_t nameSize;
         char *hostName;
         socklen_t hostNameSize;
         char *serviceName;
@@ -476,7 +476,7 @@ GetNameInfoWrapper(uintptr_t argument)
         int errorCode;
     } *context = (void *)argument;
 
-    context->errorCode = getnameinfo(context->address, context->addressSize, context->hostName
+    context->errorCode = getnameinfo(context->name, context->nameSize, context->hostName
                                      , context->hostNameSize, context->serviceName
                                      , context->serviceNameSize, context->flags);
 }
