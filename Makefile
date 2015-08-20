@@ -1,3 +1,4 @@
+PREFIX = /usr/local/
 OBJECTS = Async.o\
           Event.o\
           FIFO.o\
@@ -34,13 +35,13 @@ clean:
 	rm -f Build/*
 
 install: all
-	mkdir -p /usr/local/lib
-	cp -T Build/Library.a /usr/local/lib/libpixy.a
-	mkdir -p /usr/local/include
-	cp -r -T Include /usr/local/include/Pixy
+	mkdir -p $(PREFIX)lib
+	cp -T Build/Library.a $(PREFIX)lib/libpixy.a
+	mkdir -p $(PREFIX)include
+	cp -r -T Include $(PREFIX)include/Pixy
 
 uninstall:
-	rm /usr/local/lib/libpixy.a
-	rmdir -p --ignore-fail-on-non-empty /usr/local/lib
-	rm -r /usr/local/include/Pixy
-	rmdir -p --ignore-fail-on-non-empty /usr/local/include
+	rm $(PREFIX)lib/libpixy.a
+	rmdir -p --ignore-fail-on-non-empty $(PREFIX)lib
+	rm -r $(PREFIX)include/Pixy
+	rmdir -p --ignore-fail-on-non-empty $(PREFIX)include
