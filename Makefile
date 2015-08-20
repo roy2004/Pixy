@@ -1,11 +1,11 @@
 OBJECTS = Async.o\
+          Event.o\
           FIFO.o\
           Heap.o\
           IO.o\
           IOPoller.o\
           List.o\
           Logging.o\
-          Mailbox.o\
           MemoryPool.o\
           RBTree.o\
           Runtime.o\
