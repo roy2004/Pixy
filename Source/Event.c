@@ -44,12 +44,12 @@ Event_Trigger(struct Event *self)
         return;
     }
 
+    self->lastWaiter = NULL;
+
     do {
         Scheduler_ResumeFiber(&Scheduler, waiter->fiber);
         waiter = waiter->prev;
     } while (waiter != NULL);
-
-    self->lastWaiter = NULL;
 }
 
 
