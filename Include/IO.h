@@ -10,7 +10,7 @@
 #include <sys/socket.h>
 
 
-#ifdef __cplusplus
+#if defined __cplusplus
 extern "C" {
 #endif
 
@@ -43,6 +43,6 @@ int GetAddrInfo(const char *hostName, const char *serviceName, const struct addr
 int GetNameInfo(const struct sockaddr *name, socklen_t nameSize, char *hostName
                 , socklen_t hostNameSize, char *serviceName, socklen_t serviceNameSize, int flags);
 
-#ifdef __cplusplus
+#if defined __cplusplus
 } // extern "C"
 #endif

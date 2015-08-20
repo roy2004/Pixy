@@ -11,7 +11,7 @@
 #include "Noreturn.h"
 
 
-#ifdef __cplusplus
+#if defined __cplusplus
 extern "C" {
 #endif
 
@@ -22,6 +22,6 @@ void YieldCurrentFiber(void);
 void ExitCurrentFiber(void) NORETURN;
 int SleepCurrentFiber(int duration);
 
-#ifdef __cplusplus
+#if defined __cplusplus
 } // extern "C"
 #endif
