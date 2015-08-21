@@ -14,7 +14,8 @@
 
 
 #ifdef NDEBUG
-#define LOG_DEBUG(FORMAT, ...)
+#define LOG_DEBUG(FORMAT, ...) \
+    (void)0
 #else
 #define LOG_DEBUG(FORMAT, ...) \
     __LOG(Debug, FORMAT, ##__VA_ARGS__)
