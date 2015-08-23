@@ -1,7 +1,6 @@
 PREFIX = /usr/local/
 OBJECTS = Async.o\
           Event.o\
-          FIFO.o\
           Heap.o\
           IO.o\
           IOPoller.o\
@@ -12,7 +11,8 @@ OBJECTS = Async.o\
           Runtime.o\
           Scheduler.o\
           ThreadPool.o\
-          Timer.o
+          Timer.o\
+	  Vector.o
 CPPFLAGS = -iquote Include -MMD -MT $@ -MF Build/$*.d -D_GNU_SOURCE
 #CPPFLAGS += -DNDEBUG
 CFLAGS = -std=c99 -Wall -Wextra -Werror
