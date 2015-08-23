@@ -10,12 +10,15 @@
 #include <stddef.h>
 #include <assert.h>
 
-#include "FIFO.h"
+#include "Vector.h"
 
 
 struct Async
 {
-    struct FIFO callFIFO;
+    struct Vector callVector;
+    struct __AsyncCall *calls;
+    int maxNumberOfCalls;
+    int numberOfCalls;
 };
 
 
@@ -39,10 +42,20 @@ Async_AddCall(struct Async *self, void (*function)(uintptr_t), uintptr_t argumen
     assert(self != NULL);
     assert(function != NULL);
 
-    struct __AsyncCall call = {
+    if (self->numberOfCalls == self->maxNumberOfCalls) {
+        if ((self->maxNumberOfCalls == 0 ? Vector_SetLength(&self->callVector, 1024)
+             : Vector_Expand(&self->callVector)) < 0) {
+            return -1;
+        }
+
+        self->calls = Vector_GetElements(&self->callVector);
+        self->maxNumberOfCalls = Vector_GetLength(&self->callVector);
+    }
+
+    self->calls[self->numberOfCalls++] = (struct __AsyncCall) {
         .function = function,
         .argument = argument
     };
 
-    return FIFO_Write(&self->callFIFO, &call, sizeof call);
+    return 0;
 }

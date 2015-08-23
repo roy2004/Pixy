@@ -10,7 +10,10 @@ void
 Async_Initialize(struct Async *self)
 {
     assert(self != NULL);
-    FIFO_Initialize(&self->callFIFO);
+    Vector_Initialize(&self->callVector, sizeof(struct __AsyncCall));
+    self->calls = NULL;
+    self->maxNumberOfCalls = 0;
+    self->numberOfCalls = 0;
 }
 
 
@@ -18,7 +21,7 @@ void
 Async_Finalize(const struct Async *self)
 {
     assert(self != NULL);
-    FIFO_Finalize(&self->callFIFO);
+    Vector_Finalize(&self->callVector);
 }
 
 
@@ -26,13 +29,13 @@ void
 Async_DispatchCalls(struct Async *self)
 {
     assert(self != NULL);
-    const struct __AsyncCall *calls = FIFO_GetData(&self->callFIFO);
-    ptrdiff_t n = FIFO_GetDataSize(&self->callFIFO) / sizeof *calls;
-    ptrdiff_t i;
+    struct __AsyncCall *calls = self->calls;
+    int numberOfCalls = self->numberOfCalls;
+    int i;
 
-    for (i = 0; i < n; ++i) {
+    for (i = 0; i < numberOfCalls; ++i) {
         calls[i].function(calls[i].argument);
     }
 
-    FIFO_Read(&self->callFIFO, NULL, -1);
+    self->numberOfCalls = 0;
 }
