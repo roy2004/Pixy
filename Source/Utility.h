@@ -6,20 +6,20 @@
 #pragma once
 
 
-#define LENGTH_OF(ARRAY) \
-    (sizeof (ARRAY) / sizeof *(ARRAY))
+#define LENGTH_OF(array) \
+    (sizeof (array) / sizeof *(array))
 
-#define OFFSET_OF(TYPE, FIELD) \
-    ((char *)&((TYPE *)0)->FIELD - (char *)0)
+#define OFFSET_OF(type, field) \
+    ((char *)&((type *)0)->field - (char *)0)
 
-#define CONTAINER_OF(ADDRESS, TYPE, FIELD) \
-    ((TYPE *)((char *)(ADDRESS) - OFFSET_OF(TYPE, FIELD)))
+#define CONTAINER_OF(address, type, field) \
+    ((type *)((char *)(address) - OFFSET_OF(type, field)))
 
-#define COMPARE(A, B) \
-    (((A) > (B)) - ((A) < (B)))
+#define COMPARE(a, b) \
+    (((a) > (b)) - ((a) < (b)))
 
-#define STRINGIZE(TEXT) \
-    __STRINGIZE(TEXT)
+#define STRINGIZE(text) \
+    __STRINGIZE(text)
 
-#define __STRINGIZE(TEXT) \
-    #TEXT
+#define __STRINGIZE(text) \
+    #text

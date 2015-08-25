@@ -7,6 +7,7 @@
 
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "Heap.h"
 
@@ -31,7 +32,7 @@ struct Timeout
 
 void Timer_Initialize(struct Timer *);
 void Timer_Finalize(struct Timer *);
-int Timer_SetTimeout(struct Timer *, struct Timeout *, int, uintptr_t, void (*)(uintptr_t));
+bool Timer_SetTimeout(struct Timer *, struct Timeout *, int, uintptr_t, void (*)(uintptr_t));
 void Timer_ClearTimeout(struct Timer *, const struct Timeout *);
 int Timer_CalculateWaitTime(const struct Timer *);
-int Timer_Tick(struct Timer *, struct Async *);
+bool Timer_Tick(struct Timer *, struct Async *);

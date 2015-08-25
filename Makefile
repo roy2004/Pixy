@@ -7,7 +7,6 @@ OBJECTS = Async.o\
           List.o\
           Logging.o\
           MemoryPool.o\
-          RBTree.o\
           Runtime.o\
           Scheduler.o\
           ThreadPool.o\

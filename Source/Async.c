@@ -11,8 +11,6 @@ Async_Initialize(struct Async *self)
 {
     assert(self != NULL);
     Vector_Initialize(&self->callVector, sizeof(struct __AsyncCall));
-    self->calls = NULL;
-    self->maxNumberOfCalls = 0;
     self->numberOfCalls = 0;
 }
 
@@ -29,11 +27,11 @@ void
 Async_DispatchCalls(struct Async *self)
 {
     assert(self != NULL);
-    struct __AsyncCall *calls = self->calls;
-    int numberOfCalls = self->numberOfCalls;
+    struct __AsyncCall *calls = Vector_GetElements(&self->callVector);
+    int n = self->numberOfCalls;
     int i;
 
-    for (i = 0; i < numberOfCalls; ++i) {
+    for (i = 0; i < n; ++i) {
         calls[i].function(calls[i].argument);
     }
 

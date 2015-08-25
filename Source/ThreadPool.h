@@ -9,6 +9,7 @@
 #include <pthread.h>
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "List.h"
 #include "IOPoller.h"
@@ -40,7 +41,7 @@ struct Work
 };
 
 
-int ThreadPool_Initialize(struct ThreadPool *, struct IOPoller *);
+bool ThreadPool_Initialize(struct ThreadPool *, struct IOPoller *);
 void ThreadPool_Finalize(struct ThreadPool *);
 void ThreadPool_Start(struct ThreadPool *);
 void ThreadPool_Stop(struct ThreadPool *);

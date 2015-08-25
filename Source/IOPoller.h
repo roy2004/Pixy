@@ -7,9 +7,10 @@
 
 
 #include <stdint.h>
+#include <stdbool.h>
 
+#include "Vector.h"
 #include "MemoryPool.h"
-#include "RBTree.h"
 #include "List.h"
 
 
@@ -26,8 +27,8 @@ struct Async;
 struct IOPoller
 {
     int fd;
+    struct Vector eventVector;
     struct MemoryPool eventMemoryPool;
-    struct RBTree eventRBTree;
     struct ListItem dirtyEventListHead;
 };
 
@@ -43,8 +44,8 @@ struct IOWatch
 
 void IOPoller_Initialize(struct IOPoller *);
 void IOPoller_Finalize(const struct IOPoller *);
-int IOPoller_SetWatch(struct IOPoller *, struct IOWatch *, int, enum IOCondition, uintptr_t
-                      , void (*)(uintptr_t));
+bool IOPoller_SetWatch(struct IOPoller *, struct IOWatch *, int, enum IOCondition, uintptr_t
+                       , void (*)(uintptr_t));
 void IOPoller_ClearWatch(struct IOPoller *, const struct IOWatch *);
 void IOPoller_ClearWatches(struct IOPoller *, int);
-int IOPoller_Tick(struct IOPoller *, int, struct Async *);
+bool IOPoller_Tick(struct IOPoller *, int, struct Async *);

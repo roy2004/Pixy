@@ -35,7 +35,7 @@ main(int argc, char **argv)
     IOPoller_Initialize(&IOPoller);
     Timer_Initialize(&Timer);
 
-    if (ThreadPool_Initialize(&ThreadPool, &IOPoller) < 0) {
+    if (!ThreadPool_Initialize(&ThreadPool, &IOPoller)) {
         LOG_FATAL_ERROR("`ThreadPool_Initialize()` failed: %s", strerror(errno));
     }
 
@@ -61,24 +61,22 @@ main(int argc, char **argv)
 }
 
 
-int
+bool
 AddFiber(void (*function)(uintptr_t), uintptr_t argument)
 {
     if (function == NULL) {
-        errno = EINVAL;
-        return -1;
+        return true;
     }
 
     return Scheduler_AddFiber(&Scheduler, function, argument);
 }
 
 
-int
+bool
 AddAndRunFiber(void (*function)(uintptr_t), uintptr_t argument)
 {
     if (function == NULL) {
-        errno = EINVAL;
-        return -1;
+        return true;
     }
 
     return Scheduler_AddAndRunFiber(&Scheduler, function, argument);
@@ -99,18 +97,18 @@ ExitCurrentFiber(void)
 }
 
 
-int
+bool
 SleepCurrentFiber(int duration)
 {
     struct Timeout timeout;
 
-    if (Timer_SetTimeout(&Timer, &timeout, duration
-                         , (uintptr_t)Scheduler_GetCurrentFiber(&Scheduler), SleepCallback) < 0) {
-        return -1;
+    if (!Timer_SetTimeout(&Timer, &timeout, duration
+                          , (uintptr_t)Scheduler_GetCurrentFiber(&Scheduler), SleepCallback)) {
+        return false;
     }
 
     Scheduler_SuspendCurrentFiber(&Scheduler);
-    return 0;
+    return true;
 }
 
 
@@ -140,19 +138,19 @@ Loop(void)
             break;
         }
 
-        int result;
+        bool ok;
 
         do {
-            result = IOPoller_Tick(&IOPoller, Timer_CalculateWaitTime(&Timer), &async);
-        } while (result < 0 && errno == EINTR);
+            ok = IOPoller_Tick(&IOPoller, Timer_CalculateWaitTime(&Timer), &async);
+        } while (!ok && errno == EINTR);
 
-        if (result < 0) {
+        if (!ok) {
             LOG_FATAL_ERROR("`IOPoller_Tick()` failed: %s", strerror(errno));
         }
 
         Async_DispatchCalls(&async);
 
-        if (Timer_Tick(&Timer, &async) < 0) {
+        if (!Timer_Tick(&Timer, &async)) {
             LOG_FATAL_ERROR("`Timer_Tick()` failed: %s", strerror(errno));
         }
 

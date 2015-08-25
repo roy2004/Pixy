@@ -20,7 +20,6 @@
 
 struct IOEvent
 {
-    struct RBTreeNode rbTreeNode;
     struct ListItem listItem;
     int fd;
     uint32_t flags;
@@ -28,9 +27,6 @@ struct IOEvent
     struct ListItem watchListHeads[2];
 };
 
-
-static int IOEventRBTreeNode_Match(const struct RBTreeNode *, uintptr_t);
-static int IOEventRBTreeNode_Compare(const struct RBTreeNode *, const struct RBTreeNode *);
 
 static int xepoll_create1(int);
 static void xclose(int);
@@ -48,8 +44,8 @@ IOPoller_Initialize(struct IOPoller *self)
 {
     assert(self != NULL);
     self->fd = xepoll_create1(0);
+    Vector_Initialize(&self->eventVector, sizeof(struct IOEvent *));
     MemoryPool_Initialize(&self->eventMemoryPool, sizeof(struct IOEvent));
-    RBTree_Initialize(&self->eventRBTree);
     List_Initialize(&self->dirtyEventListHead);
 }
 
@@ -59,11 +55,12 @@ IOPoller_Finalize(const struct IOPoller *self)
 {
     assert(self != NULL);
     xclose(self->fd);
+    Vector_Finalize(&self->eventVector);
     MemoryPool_Finalize(&self->eventMemoryPool);
 }
 
 
-int
+bool
 IOPoller_SetWatch(struct IOPoller *self, struct IOWatch *watch, int fd, enum IOCondition condition
                   , uintptr_t data, void (*callback)(uintptr_t))
 {
@@ -72,15 +69,21 @@ IOPoller_SetWatch(struct IOPoller *self, struct IOWatch *watch, int fd, enum IOC
     assert(fd >= 0);
     assert(condition == IOReadable || condition == IOWritable);
     assert(callback != NULL);
-    struct RBTreeNode *eventRBTreeNode = RBTree_Search(&self->eventRBTree, (uintptr_t)fd
-                                                       , IOEventRBTreeNode_Match);
-    struct IOEvent *event;
 
-    if (eventRBTreeNode == NULL) {
+    if (fd >= Vector_GetLength(&self->eventVector)) {
+        if (!Vector_SetLength(&self->eventVector, fd + 1, true)) {
+            return false;
+        }
+    }
+
+    struct IOEvent **events = Vector_GetElements(&self->eventVector);
+    struct IOEvent *event = events[fd];
+
+    if (event == NULL) {
         event = MemoryPool_AllocateBlock(&self->eventMemoryPool);
 
         if (event == NULL) {
-            return -1;
+            return false;
         }
 
         event->fd = fd;
@@ -88,10 +91,8 @@ IOPoller_SetWatch(struct IOPoller *self, struct IOWatch *watch, int fd, enum IOC
         event->pendingFlags = 0;
         List_Initialize(&event->watchListHeads[0]);
         List_Initialize(&event->watchListHeads[1]);
-        RBTree_InsertNode(&self->eventRBTree, &event->rbTreeNode, IOEventRBTreeNode_Compare);
         List_Initialize(&event->listItem);
-    } else {
-        event = CONTAINER_OF(eventRBTreeNode, struct IOEvent, rbTreeNode);
+        events[fd] = event;
     }
 
     watch->condition = condition;
@@ -107,7 +108,7 @@ IOPoller_SetWatch(struct IOPoller *self, struct IOWatch *watch, int fd, enum IOC
         }
     }
 
-    return 0;
+    return true;
 }
 
 
@@ -136,14 +137,18 @@ IOPoller_ClearWatches(struct IOPoller *self, int fd)
 {
     assert(self != NULL);
     assert(fd >= 0);
-    struct RBTreeNode *eventRBTreeNode = RBTree_Search(&self->eventRBTree, (uintptr_t)fd
-                                                       , IOEventRBTreeNode_Match);
 
-    if (eventRBTreeNode == NULL) {
+    if (fd >= Vector_GetLength(&self->eventVector)) {
         return;
     }
 
-    struct IOEvent *event = CONTAINER_OF(eventRBTreeNode, struct IOEvent, rbTreeNode);
+    struct IOEvent **events = Vector_GetElements(&self->eventVector);
+    struct IOEvent *event = events[fd];
+
+    if (event == NULL) {
+        return;
+    }
+
     List_Initialize(&event->watchListHeads[0]);
     List_Initialize(&event->watchListHeads[1]);
     event->pendingFlags = 0;
@@ -160,7 +165,7 @@ IOPoller_ClearWatches(struct IOPoller *self, int fd)
 }
 
 
-int
+bool
 IOPoller_Tick(struct IOPoller *self, int timeout, struct Async *async)
 {
     assert(self != NULL);
@@ -193,7 +198,8 @@ IOPoller_Tick(struct IOPoller *self, int timeout, struct Async *async)
             }
 
             if (event->flags == 0) {
-                RBTree_RemoveNode(&self->eventRBTree, &event->rbTreeNode);
+                struct IOEvent **events = Vector_GetElements(&self->eventVector);
+                events[event->fd] = NULL;
                 MemoryPool_FreeBlock(&self->eventMemoryPool, event);
             } else {
                 List_Initialize(&event->listItem);
@@ -208,7 +214,7 @@ IOPoller_Tick(struct IOPoller *self, int timeout, struct Async *async)
 
     if (n < 0) {
         if (errno == EINTR) {
-            return -1;
+            return false;
         }
 
         LOG_FATAL_ERROR("`epoll_wait()` failed: %s", strerror(errno));
@@ -222,11 +228,11 @@ IOPoller_Tick(struct IOPoller *self, int timeout, struct Async *async)
         if ((evs[i].events & (IOEventFlags[0] | EPOLLERR | EPOLLHUP)) != 0) {
             struct ListItem *watchListItem;
 
-            FOR_EACH_LIST_ITEM_FORWARD(watchListItem, &event->watchListHeads[0]) {
+            FOR_EACH_LIST_ITEM(watchListItem, &event->watchListHeads[0]) {
                 struct IOWatch *watch = CONTAINER_OF(watchListItem, struct IOWatch, listItem);
 
-                if (Async_AddCall(async, watch->callback, watch->data) < 0) {
-                    return -1;
+                if (!Async_AddCall(async, watch->callback, watch->data)) {
+                    return false;
                 }
             }
         }
@@ -234,32 +240,17 @@ IOPoller_Tick(struct IOPoller *self, int timeout, struct Async *async)
         if ((evs[i].events & (IOEventFlags[1] | EPOLLERR | EPOLLHUP)) != 0) {
             struct ListItem *watchListItem;
 
-            FOR_EACH_LIST_ITEM_FORWARD(watchListItem, &event->watchListHeads[1]) {
+            FOR_EACH_LIST_ITEM(watchListItem, &event->watchListHeads[1]) {
                 struct IOWatch *watch = CONTAINER_OF(watchListItem, struct IOWatch, listItem);
 
-                if (Async_AddCall(async, watch->callback, watch->data) < 0) {
-                    return -1;
+                if (!Async_AddCall(async, watch->callback, watch->data)) {
+                    return false;
                 }
             }
         }
     }
 
-    return 0;
-}
-
-
-static int
-IOEventRBTreeNode_Match(const struct RBTreeNode *self, uintptr_t key)
-{
-    return COMPARE(CONTAINER_OF(self, const struct IOEvent, rbTreeNode)->fd, (int)key);
-}
-
-
-static int
-IOEventRBTreeNode_Compare(const struct RBTreeNode *self, const struct RBTreeNode *other)
-{
-    return COMPARE(CONTAINER_OF(self, const struct IOEvent, rbTreeNode)->fd
-                   , CONTAINER_OF(other, const struct IOEvent, rbTreeNode)->fd);
+    return true;
 }
 
 

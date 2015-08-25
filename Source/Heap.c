@@ -6,29 +6,24 @@
 #include "Heap.h"
 
 #include <stdlib.h>
-#include <limits.h>
 
 
 #define HEAP_SEGMENT_LENGTH 256
 
 
-static int Heap_IncreaseSegments(struct Heap *);
-static int Heap_ExpandSegmentTable(struct Heap *);
+static bool Heap_IncreaseSegments(struct Heap *);
 static struct HeapNode **Heap_LocateSlot(const struct Heap *, int);
 static void Heap_SiftNodeUp(struct Heap *, struct HeapNode **, int (*)(const struct HeapNode *
                                                                        , const struct HeapNode *));
 static void Heap_SiftNodeDown(struct Heap *, struct HeapNode **
                               , int (*)(const struct HeapNode *, const struct HeapNode *));
 
-static unsigned int NextPowerOfTwo(unsigned int);
-
 
 void
 Heap_Initialize(struct Heap *self)
 {
     assert(self != NULL);
-    self->segmentTable = NULL;
-    self->segmentTableLength = 0;
+    Vector_Initialize(&self->segmentVector, sizeof(struct HeapNode **));
     self->numberOfSegments = 0;
     self->numberOfSlots = 0;
     self->numberOfNodes = 0;
@@ -40,21 +35,20 @@ Heap_Finalize(const struct Heap *self)
 {
     assert(self != NULL);
 
-    if (self->numberOfSegments == 0) {
-        return;
+    if (self->numberOfSegments >= 1) {
+        struct HeapNode ***segments = Vector_GetElements(&self->segmentVector);
+        int i = self->numberOfSegments - 1;
+
+        do {
+            free(segments[i--]);
+        } while (i >= 0);
     }
 
-    int i = self->numberOfSegments - 1;
-
-    do {
-        free(self->segmentTable[i]);
-    } while (--i >= 0);
-
-    free(self->segmentTable);
+    Vector_Finalize(&self->segmentVector);
 }
 
 
-int
+bool
 Heap_ShrinkToFit(struct Heap *self)
 {
     assert(self != NULL);
@@ -62,43 +56,22 @@ Heap_ShrinkToFit(struct Heap *self)
                            / (unsigned int)HEAP_SEGMENT_LENGTH;
 
     if (self->numberOfSegments > numberOfSegments) {
+        struct HeapNode ***segments = Vector_GetElements(&self->segmentVector);
         int i = self->numberOfSegments - 1;
 
         do {
-            free(self->segmentTable[i]);
-        } while (--i >= numberOfSegments);
+            free(segments[i--]);
+        } while (i >= numberOfSegments);
 
         self->numberOfSegments = numberOfSegments;
         self->numberOfSlots = numberOfSegments * (unsigned int)HEAP_SEGMENT_LENGTH;
     }
 
-    int segmentTableLength = NextPowerOfTwo(numberOfSegments);
-
-    if (self->segmentTableLength == segmentTableLength) {
-        return 0;
-    }
-
-    if (segmentTableLength == 0) {
-        free(self->segmentTable);
-        self->segmentTable = NULL;
-        self->segmentTableLength = 0;
-    } else {
-        struct HeapNode ***segmentTable = realloc(self->segmentTable, segmentTableLength
-                                                                      * sizeof *segmentTable);
-
-        if (segmentTable == NULL) {
-            return -1;
-        }
-
-        self->segmentTable = segmentTable;
-        self->segmentTableLength = segmentTableLength;
-    }
-
-    return 0;
+    return Vector_SetLength(&self->segmentVector, numberOfSegments, false);
 }
 
 
-int
+bool
 Heap_InsertNode(struct Heap *self, struct HeapNode *node
                 , int (*nodeComparer)(const struct HeapNode *, const struct HeapNode *))
 {
@@ -107,15 +80,15 @@ Heap_InsertNode(struct Heap *self, struct HeapNode *node
     assert(nodeComparer != NULL);
 
     if (self->numberOfNodes == self->numberOfSlots) {
-        if (Heap_IncreaseSegments(self) < 0) {
-            return -1;
+        if (!Heap_IncreaseSegments(self)) {
+            return false;
         }
     }
 
     struct HeapNode **slot = Heap_LocateSlot(self, self->numberOfNodes);
     (*slot = node)->slotNumber = self->numberOfNodes++;
     Heap_SiftNodeUp(self, slot, nodeComparer);
-    return 0;
+    return true;
 }
 
 
@@ -162,49 +135,34 @@ Heap_RemoveNode(struct Heap *self, const struct HeapNode *node
 }
 
 
-static int
+static bool
 Heap_IncreaseSegments(struct Heap *self)
 {
-    if (self->numberOfSegments == self->segmentTableLength) {
-        if (Heap_ExpandSegmentTable(self) < 0) {
-            return -1;
+    if (self->numberOfSegments == Vector_GetLength(&self->segmentVector)) {
+        if (!Vector_SetLength(&self->segmentVector, self->numberOfSegments + 1, false)) {
+            return false;
         }
     }
 
     struct HeapNode **segment = malloc(HEAP_SEGMENT_LENGTH * sizeof *segment);
 
     if (segment == NULL) {
-        return -1;
+        return false;
     }
 
-    self->segmentTable[self->numberOfSegments++] = segment;
+    struct HeapNode ***segments = Vector_GetElements(&self->segmentVector);
+    segments[self->numberOfSegments++] = segment;
     self->numberOfSlots += HEAP_SEGMENT_LENGTH;
-    return 0;
-}
-
-
-static int
-Heap_ExpandSegmentTable(struct Heap *self)
-{
-    int segmentTableLength = self->segmentTableLength == 0 ? 1 : 2u * self->segmentTableLength;
-    struct HeapNode ***segmentTable = realloc(self->segmentTable, segmentTableLength
-                                                                  * sizeof *segmentTable);
-
-    if (segmentTable == NULL) {
-        return -1;
-    }
-
-    self->segmentTable = segmentTable;
-    self->segmentTableLength = segmentTableLength;
-    return 0;
+    return true;
 }
 
 
 static struct HeapNode **
 Heap_LocateSlot(const struct Heap *self, int slotNumber)
 {
-    return &self->segmentTable[slotNumber / (unsigned int)HEAP_SEGMENT_LENGTH]
-                              [slotNumber % (unsigned int)HEAP_SEGMENT_LENGTH];
+    struct HeapNode ***segments = Vector_GetElements(&self->segmentVector);
+    return &segments[slotNumber / (unsigned int)HEAP_SEGMENT_LENGTH]
+                    [slotNumber % (unsigned int)HEAP_SEGMENT_LENGTH];
 }
 
 
@@ -268,19 +226,4 @@ Heap_SiftNodeDown(struct Heap *self, struct HeapNode **slotX
     }
 
     (*slotX = node)->slotNumber = x;
-}
-
-
-static unsigned int
-NextPowerOfTwo(unsigned int number)
-{
-    --number;
-    int k;
-
-    for (k = 1; k < (int)sizeof number * CHAR_BIT; k *= 2u) {
-        number |= number >> k;
-    }
-
-    ++number;
-    return number;
 }

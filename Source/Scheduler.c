@@ -23,9 +23,9 @@ struct Fiber
 };
 
 
-static void Scheduler_SwitchToFiber(struct Scheduler *, struct Fiber *) NORETURN;
-static void Scheduler_FiberStart(struct Scheduler *, struct Fiber *) NORETURN;
-static void Scheduler_SwitchTo(struct Scheduler *) NORETURN;
+static NORETURN void Scheduler_SwitchToFiber(struct Scheduler *, struct Fiber *);
+static NORETURN void Scheduler_FiberStart(struct Scheduler *, struct Fiber *);
+static NORETURN void Scheduler_SwitchTo(struct Scheduler *);
 
 static struct Fiber *Fiber_Allocate(void);
 static void Fiber_Free(struct Fiber *);
@@ -56,7 +56,7 @@ Scheduler_Finalize(const struct Scheduler *self)
 }
 
 
-int
+bool
 Scheduler_AddFiber(struct Scheduler *self, void (*function)(uintptr_t), uintptr_t argument)
 {
     assert(self != NULL);
@@ -67,7 +67,7 @@ Scheduler_AddFiber(struct Scheduler *self, void (*function)(uintptr_t), uintptr_
         fiber = Fiber_Allocate();
 
         if (fiber == NULL) {
-            return -1;
+            return false;
         }
     } else {
         fiber = CONTAINER_OF(List_GetBack(&self->deadFiberListHead), struct Fiber, listItem);
@@ -79,23 +79,23 @@ Scheduler_AddFiber(struct Scheduler *self, void (*function)(uintptr_t), uintptr_
     fiber->argument = argument;
     List_InsertBack(&self->readyFiberListHead, &fiber->listItem);
     ++self->fiberCount;
-    return 0;
+    return true;
 }
 
 
-int
+bool
 Scheduler_AddAndRunFiber(struct Scheduler *self, void (*function)(uintptr_t), uintptr_t argument)
 {
     assert(self != NULL && self->activeFiber != NULL);
 
-    if (Scheduler_AddFiber(self, function, argument) < 0) {
-        return -1;
+    if (!Scheduler_AddFiber(self, function, argument)) {
+        return false;
     }
 
     jmp_buf context;
 
     if (setjmp(context) != 0) {
-        return 0;
+        return true;
     }
 
     self->activeFiber->context = &context;
@@ -163,7 +163,7 @@ Scheduler_ResumeFiber(struct Scheduler *self, struct Fiber *fiber)
 }
 
 
-void
+NORETURN void
 Scheduler_ExitCurrentFiber(struct Scheduler *self)
 {
     assert(self != NULL && self->activeFiber != NULL);
@@ -216,7 +216,7 @@ Scheduler_Tick(struct Scheduler *self)
 }
 
 
-static void
+static NORETURN void
 Scheduler_SwitchToFiber(struct Scheduler *self, struct Fiber *fiber)
 {
     self->activeFiber = fiber;
@@ -251,7 +251,7 @@ Scheduler_SwitchToFiber(struct Scheduler *self, struct Fiber *fiber)
 }
 
 
-static void
+static NORETURN void
 Scheduler_FiberStart(struct Scheduler *self, struct Fiber *fiber)
 {
     fiber->function(fiber->argument);
@@ -259,7 +259,7 @@ Scheduler_FiberStart(struct Scheduler *self, struct Fiber *fiber)
 }
 
 
-static void
+static NORETURN void
 Scheduler_SwitchTo(struct Scheduler *self)
 {
     self->activeFiber = NULL;

@@ -8,17 +8,26 @@
 
 #include <stddef.h>
 #include <assert.h>
+#include <stdbool.h>
 
 
-#define FOR_EACH_LIST_ITEM_BACKWARD(LIST_ITEM, LIST_HEAD)                                       \
-    assert((LIST_HEAD) != NULL);                                                                \
-    for ((LIST_ITEM) = (LIST_HEAD)->prev; (LIST_ITEM) != (LIST_HEAD); (LIST_ITEM) = (LIST_ITEM) \
-                                                                                    ->prev)
+#define FOR_EACH_LIST_ITEM(listItem, listHead) \
+    assert((listHead) != NULL);                \
+    for ((listItem) = (listHead)->next; (listItem) != (listHead); (listItem) = (listItem)->next)
 
-#define FOR_EACH_LIST_ITEM_FORWARD(LIST_ITEM, LIST_HEAD)                                        \
-    assert((LIST_HEAD) != NULL);                                                                \
-    for ((LIST_ITEM) = (LIST_HEAD)->next; (LIST_ITEM) != (LIST_HEAD); (LIST_ITEM) = (LIST_ITEM) \
-                                                                                    ->next)
+#define FOR_EACH_LIST_ITEM_REVERSE(listItem, listHead) \
+    assert((listHead) != NULL);                        \
+    for ((listItem) = (listHead)->prev; (listItem) != (listHead); (listItem) = (listItem)->prev)
+
+#define FOR_EACH_LIST_ITEM_SAFE(listItem, temp, listHead)                                   \
+    assert((listHead) != NULL);                                                             \
+    for ((listItem) = (listHead)->next, (temp) = (listItem)->next; (listItem) != (listHead) \
+         ; (listItem) = (temp), (temp) = (listItem)->next)
+
+#define FOR_EACH_LIST_ITEM_SAFE_REVERSE(listItem, temp, listHead)                           \
+    assert((listHead) != NULL);                                                             \
+    for ((listItem) = (listHead)->prev, (temp) = (listItem)->prev; (listItem) != (listHead) \
+         ; (listItem) = (temp), (temp) = (listItem)->prev)
 
 
 struct ListItem
@@ -31,7 +40,7 @@ struct ListItem
 static inline void List_Initialize(struct ListItem *);
 static inline void List_InsertBack(struct ListItem *, struct ListItem *);
 static inline void List_InsertFront(struct ListItem *, struct ListItem *);
-static inline int List_IsEmpty(const struct ListItem *);
+static inline bool List_IsEmpty(const struct ListItem *);
 #define List_GetBack ListItem_GetPrev
 #define List_GetFront ListItem_GetNext
 
@@ -73,7 +82,7 @@ List_InsertFront(struct ListItem *head, struct ListItem *front)
 }
 
 
-static inline int
+static inline bool
 List_IsEmpty(const struct ListItem *head)
 {
     assert(head != NULL);

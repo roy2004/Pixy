@@ -39,7 +39,7 @@ Timer_Finalize(struct Timer *self)
 }
 
 
-int
+bool
 Timer_SetTimeout(struct Timer *self, struct Timeout *timeout, int delay, uintptr_t data
                  , void (*callback)(uintptr_t))
 {
@@ -50,11 +50,11 @@ Timer_SetTimeout(struct Timer *self, struct Timeout *timeout, int delay, uintptr
     timeout->data = data;
     timeout->callback = callback;
 
-    if (Heap_InsertNode(&self->timeoutHeap, &timeout->heapNode, TimeoutHeapNode_Compare) < 0) {
-        return -1;
+    if (!Heap_InsertNode(&self->timeoutHeap, &timeout->heapNode, TimeoutHeapNode_Compare)) {
+        return false;
     }
 
-    return 0;
+    return true;
 }
 
 
@@ -93,7 +93,7 @@ Timer_CalculateWaitTime(const struct Timer *self)
 }
 
 
-int
+bool
 Timer_Tick(struct Timer *self, struct Async *async)
 {
     assert(self != NULL);
@@ -101,7 +101,7 @@ Timer_Tick(struct Timer *self, struct Async *async)
     struct HeapNode *timeoutHeapNode = Heap_GetTop(&self->timeoutHeap);
 
     if (timeoutHeapNode == NULL) {
-        return 0;
+        return true;
     }
 
     uint64_t now = GetTime();
@@ -113,15 +113,15 @@ Timer_Tick(struct Timer *self, struct Async *async)
             break;
         }
 
-        if (Async_AddCall(async, timeout->callback, timeout->data) < 0) {
-            return -1;
+        if (!Async_AddCall(async, timeout->callback, timeout->data)) {
+            return false;
         }
 
         Heap_RemoveNode(&self->timeoutHeap, timeoutHeapNode, TimeoutHeapNode_Compare);
         timeoutHeapNode = Heap_GetTop(&self->timeoutHeap);
     } while (timeoutHeapNode != NULL);
 
-    return 0;
+    return true;
 }
 
 

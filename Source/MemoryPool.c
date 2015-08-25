@@ -5,8 +5,9 @@
 
 #include "MemoryPool.h"
 
-#include <assert.h>
 #include <stdlib.h>
+#include <stdbool.h>
+#include <assert.h>
 #include <errno.h>
 #include <stdint.h>
 
@@ -24,26 +25,26 @@ struct MemoryChunk
 };
 
 
-static int MemoryPool_IncreaseChunks(struct MemoryPool *);
+static bool MemoryPool_IncreaseChunks(struct MemoryPool *);
 
 static struct MemoryChunk *LocateMemoryChunk(const void *);
 
 
-static const size_t MemoryChunkPaddingSize = MEMORY_CHUNK_SIZE - sizeof(struct MemoryChunk);
+static const size_t MemoryChunkPayloadSize = MEMORY_CHUNK_SIZE - sizeof(struct MemoryChunk);
 
 
 void
 MemoryPool_Initialize(struct MemoryPool *self, size_t blockSize)
 {
     assert(self != NULL);
-    assert(blockSize <= MemoryChunkPaddingSize);
+    assert(blockSize <= MemoryChunkPayloadSize);
 
     if (blockSize < sizeof(void *)) {
         blockSize = sizeof(void *);
     }
 
     self->blockSize = blockSize;
-    self->numberOfSlotsPerChunk = MemoryChunkPaddingSize / blockSize;
+    self->numberOfSlotsPerChunk = MemoryChunkPayloadSize / blockSize;
     List_Initialize(&self->usableChunkListHead);
     List_Initialize(&self->unusableChunkListHead);
 }
@@ -53,20 +54,15 @@ void
 MemoryPool_Finalize(const struct MemoryPool *self)
 {
     assert(self != NULL);
-    struct ListItem *chunkListItem = List_GetBack(&self->usableChunkListHead);
+    struct ListItem *chunkListItem;
+    struct ListItem *temp;
 
-    while (chunkListItem != &self->usableChunkListHead) {
-        struct MemoryChunk *chunk = CONTAINER_OF(chunkListItem, struct MemoryChunk, listItem);
-        chunkListItem = ListItem_GetPrev(chunkListItem);
-        free(chunk);
+    FOR_EACH_LIST_ITEM_SAFE_REVERSE(chunkListItem, temp, &self->usableChunkListHead) {
+        free(CONTAINER_OF(chunkListItem, struct MemoryChunk, listItem));
     }
 
-    chunkListItem = List_GetBack(&self->unusableChunkListHead);
-
-    while (chunkListItem != &self->unusableChunkListHead) {
-        struct MemoryChunk *chunk = CONTAINER_OF(chunkListItem, struct MemoryChunk, listItem);
-        chunkListItem = ListItem_GetPrev(chunkListItem);
-        free(chunk);
+    FOR_EACH_LIST_ITEM_SAFE_REVERSE(chunkListItem, temp, &self->unusableChunkListHead) {
+        free(CONTAINER_OF(chunkListItem, struct MemoryChunk, listItem));
     }
 }
 
@@ -75,16 +71,16 @@ void
 MemoryPool_ShrinkToFit(struct MemoryPool *self)
 {
     assert(self != NULL);
-    struct ListItem *chunkListItem = List_GetFront(&self->usableChunkListHead);
+    struct ListItem *chunkListItem;
+    struct ListItem *temp;
 
-    while (chunkListItem != &self->usableChunkListHead) {
+    FOR_EACH_LIST_ITEM_SAFE(chunkListItem, temp, &self->usableChunkListHead) {
         struct MemoryChunk *chunk = CONTAINER_OF(chunkListItem, struct MemoryChunk, listItem);
 
         if (chunk->numberOfFreeSlots < self->numberOfSlotsPerChunk) {
             break;
         }
 
-        chunkListItem = ListItem_GetNext(chunkListItem);
         ListItem_Remove(&chunk->listItem);
         free(chunk);
     }
@@ -97,7 +93,7 @@ MemoryPool_AllocateBlock(struct MemoryPool *self)
     assert(self != NULL);
 
     if (List_IsEmpty(&self->usableChunkListHead)) {
-        if (MemoryPool_IncreaseChunks(self) < 0) {
+        if (!MemoryPool_IncreaseChunks(self)) {
             return NULL;
         }
     }
@@ -153,7 +149,7 @@ MemoryPool_FreeBlock(struct MemoryPool *self, void *block)
 }
 
 
-static int
+static bool
 MemoryPool_IncreaseChunks(struct MemoryPool *self)
 {
     struct MemoryChunk *chunk;
@@ -161,7 +157,7 @@ MemoryPool_IncreaseChunks(struct MemoryPool *self)
 
     if (errorNumber != 0) {
         assert(errorNumber != EINVAL);
-        return -1;
+        return false;
     }
 
     void *block = (char *)chunk + MEMORY_CHUNK_SIZE - self->blockSize;
@@ -182,7 +178,7 @@ MemoryPool_IncreaseChunks(struct MemoryPool *self)
     *slot = NULL;
     chunk->numberOfFreeSlots = self->numberOfSlotsPerChunk;
     List_InsertFront(&self->usableChunkListHead, &chunk->listItem);
-    return 0;
+    return true;
 }
 
 

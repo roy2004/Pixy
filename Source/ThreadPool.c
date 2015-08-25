@@ -40,7 +40,7 @@ static void xpthread_create(pthread_t *, const pthread_attr_t *, void *(*)(void 
 static void xpthread_join(pthread_t, void **);
 
 
-int
+bool
 ThreadPool_Initialize(struct ThreadPool *self, struct IOPoller *ioPoller)
 {
     assert(self != NULL);
@@ -50,18 +50,18 @@ ThreadPool_Initialize(struct ThreadPool *self, struct IOPoller *ioPoller)
     xfcntl(fds[0], F_SETFL, xfcntl(fds[0], F_GETFL, 0) | O_NONBLOCK);
     xfcntl(fds[1], F_SETPIPE_SZ, 8192 * sizeof(struct Work *));
 
-    if (IOPoller_SetWatch(ioPoller, &self->ioWatch, fds[0], IOReadable, (uintptr_t)self
-                          , WorkerCallback) < 0) {
+    if (!IOPoller_SetWatch(ioPoller, &self->ioWatch, fds[0], IOReadable, (uintptr_t)self
+                           , WorkerCallback)) {
         xclose(fds[0]);
         xclose(fds[1]);
-        return -1;
+        return false;
     }
 
     self->fds[0] = fds[0];
     self->fds[1] = fds[1];
     self->ioPoller = ioPoller;
     List_Initialize(&self->workListHead);
-    return 0;
+    return true;
 }
 
 

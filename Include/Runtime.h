@@ -6,6 +6,7 @@
 #pragma once
 
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "Noreturn.h"
@@ -16,11 +17,11 @@ extern "C" {
 #endif
 
 int FiberMain(int argc, char **argv);
-int AddFiber(void (*function)(uintptr_t), uintptr_t argument);
-int AddAndRunFiber(void (*function)(uintptr_t), uintptr_t argument);
+bool AddFiber(void (*function)(uintptr_t), uintptr_t argument);
+bool AddAndRunFiber(void (*function)(uintptr_t), uintptr_t argument);
 void YieldCurrentFiber(void);
-void ExitCurrentFiber(void) NORETURN;
-int SleepCurrentFiber(int duration);
+NORETURN void ExitCurrentFiber(void);
+bool SleepCurrentFiber(int duration);
 
 #if defined __cplusplus
 } // extern "C"

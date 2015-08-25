@@ -5,6 +5,7 @@
 
 #include "IO.h"
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <errno.h>
 #include <string.h>
@@ -21,9 +22,10 @@
 #include "Logging.h"
 
 
-static int WaitForFD(int, enum IOCondition, int);
+static bool WaitForFD(int, enum IOCondition, int);
 static void WaitForFDCallback1(uintptr_t);
 static void WaitForFDCallback2(uintptr_t);
+static void WaitForFDCallback3(uintptr_t);
 static void DoWork(void (*)(uintptr_t), uintptr_t);
 static void DoWorkCallback(uintptr_t);
 static void GetAddrInfoWrapper(uintptr_t);
@@ -83,7 +85,7 @@ ReadV(int fd, const struct iovec *vector, int vectorLength, int timeout)
             return numberOfBytes;
         }
 
-        if ((errno != EAGAIN && errno != EWOULDBLOCK) || WaitForFD(fd, IOReadable, timeout) < 0) {
+        if ((errno != EAGAIN && errno != EWOULDBLOCK) || !WaitForFD(fd, IOReadable, timeout)) {
             return -1;
         }
     }
@@ -104,7 +106,7 @@ WriteV(int fd, const struct iovec *vector, int vectorLength, int timeout)
             return numberOfBytes;
         }
 
-        if ((errno != EAGAIN && errno != EWOULDBLOCK) || WaitForFD(fd, IOWritable, timeout) < 0) {
+        if ((errno != EAGAIN && errno != EWOULDBLOCK) || !WaitForFD(fd, IOWritable, timeout)) {
             return -1;
         }
     }
@@ -132,7 +134,7 @@ Accept4(int fd, struct sockaddr *name, socklen_t *nameSize, int flags, int timeo
             return subFD;
         }
 
-        if ((errno != EAGAIN && errno != EWOULDBLOCK) || WaitForFD(fd, IOReadable, timeout) < 0) {
+        if ((errno != EAGAIN && errno != EWOULDBLOCK) || !WaitForFD(fd, IOReadable, timeout)) {
             return -1;
         }
     }
@@ -143,7 +145,7 @@ int
 Connect(int fd, const struct sockaddr *name, socklen_t nameSize, int timeout)
 {
     if (connect(fd, name, nameSize) < 0) {
-        if ((errno != EINTR && errno != EINPROGRESS) || WaitForFD(fd, IOWritable, timeout) < 0) {
+        if ((errno != EINTR && errno != EINPROGRESS) || !WaitForFD(fd, IOWritable, timeout)) {
             return -1;
         }
 
@@ -267,7 +269,7 @@ RecvMsg(int fd, struct msghdr *message, int flags, int timeout)
             return numberOfBytes;
         }
 
-        if ((errno != EAGAIN && errno != EWOULDBLOCK) || WaitForFD(fd, IOReadable, timeout) < 0) {
+        if ((errno != EAGAIN && errno != EWOULDBLOCK) || !WaitForFD(fd, IOReadable, timeout)) {
             return -1;
         }
     }
@@ -288,7 +290,7 @@ SendMsg(int fd, const struct msghdr *message, int flags, int timeout)
             return numberOfBytes;
         }
 
-        if ((errno != EAGAIN && errno != EWOULDBLOCK) || WaitForFD(fd, IOWritable, timeout) < 0) {
+        if ((errno != EAGAIN && errno != EWOULDBLOCK) || !WaitForFD(fd, IOWritable, timeout)) {
             return -1;
         }
     }
@@ -359,37 +361,54 @@ GetNameInfo(const struct sockaddr *name, socklen_t nameSize, char *hostName, soc
 }
 
 
-static int
+static bool
 WaitForFD(int fd, enum IOCondition ioCondition, int timeout)
 {
-    struct {
-        struct IOWatch ioWatch;
-        struct Timeout timeout;
-        struct Fiber *fiber;
-        int result;
-        int errorNumber;
-    } context = {
-        .fiber = Scheduler_GetCurrentFiber(&Scheduler)
-    };
+    if (timeout < 0) {
+        struct {
+            struct Fiber *fiber;
+            struct IOWatch ioWatch;
+        } context = {
+            .fiber = Scheduler_GetCurrentFiber(&Scheduler)
+        };
 
-    if (IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, ioCondition, (uintptr_t)&context
-                          , WaitForFDCallback1) < 0) {
-        return -1;
+        if (!IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, ioCondition, (uintptr_t)&context
+                               , WaitForFDCallback1)) {
+            return false;
+        }
+
+        Scheduler_SuspendCurrentFiber(&Scheduler);
+    } else {
+        struct {
+            struct Fiber *fiber;
+            struct IOWatch ioWatch;
+            struct Timeout timeout;
+            bool ok;
+            int errorNumber;
+        } context = {
+            .fiber = Scheduler_GetCurrentFiber(&Scheduler)
+        };
+
+        if (!IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, ioCondition, (uintptr_t)&context
+                               , WaitForFDCallback2)) {
+            return false;
+        }
+
+        if (!Timer_SetTimeout(&Timer, &context.timeout, timeout, (uintptr_t)&context
+                              , WaitForFDCallback3)) {
+            IOPoller_ClearWatch(&IOPoller, &context.ioWatch);
+            return false;
+        }
+
+        Scheduler_SuspendCurrentFiber(&Scheduler);
+
+        if (!context.ok) {
+            errno = context.errorNumber;
+            return false;
+        }
     }
 
-    if (Timer_SetTimeout(&Timer, &context.timeout, timeout, (uintptr_t)&context, WaitForFDCallback2)
-        < 0) {
-        IOPoller_ClearWatch(&IOPoller, &context.ioWatch);
-        return -1;
-    }
-
-    Scheduler_SuspendCurrentFiber(&Scheduler);
-
-    if (context.result < 0) {
-        errno = context.errorNumber;
-    }
-
-    return context.result;
+    return true;
 }
 
 
@@ -397,16 +416,11 @@ static void
 WaitForFDCallback1(uintptr_t argument)
 {
     struct {
-        struct IOWatch ioWatch;
-        struct Timeout timeout;
         struct Fiber *fiber;
-        int result;
-        int errorNumber;
+        struct IOWatch ioWatch;
     } *context = (void *)argument;
 
-    context->result = 0;
     IOPoller_ClearWatch(&IOPoller, &context->ioWatch);
-    Timer_ClearTimeout(&Timer, &context->timeout);
     Scheduler_ResumeFiber(&Scheduler, context->fiber);
 }
 
@@ -418,13 +432,31 @@ WaitForFDCallback2(uintptr_t argument)
         struct IOWatch ioWatch;
         struct Timeout timeout;
         struct Fiber *fiber;
-        int result;
+        bool ok;
         int errorNumber;
     } *context = (void *)argument;
 
-    context->result = -1;
-    context->errorNumber = EINTR;
     IOPoller_ClearWatch(&IOPoller, &context->ioWatch);
+    Timer_ClearTimeout(&Timer, &context->timeout);
+    context->ok = true;
+    Scheduler_ResumeFiber(&Scheduler, context->fiber);
+}
+
+
+static void
+WaitForFDCallback3(uintptr_t argument)
+{
+    struct {
+        struct IOWatch ioWatch;
+        struct Timeout timeout;
+        struct Fiber *fiber;
+        bool ok;
+        int errorNumber;
+    } *context = (void *)argument;
+
+    IOPoller_ClearWatch(&IOPoller, &context->ioWatch);
+    context->ok = false;
+    context->errorNumber = EINTR;
     Scheduler_ResumeFiber(&Scheduler, context->fiber);
 }
 

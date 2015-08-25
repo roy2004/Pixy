@@ -7,6 +7,7 @@
 
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <assert.h>
 
@@ -16,8 +17,6 @@
 struct Async
 {
     struct Vector callVector;
-    struct __AsyncCall *calls;
-    int maxNumberOfCalls;
     int numberOfCalls;
 };
 
@@ -29,33 +28,31 @@ struct __AsyncCall
 };
 
 
-static inline int Async_AddCall(struct Async *, void (*)(uintptr_t), uintptr_t);
+static inline bool Async_AddCall(struct Async *, void (*)(uintptr_t), uintptr_t);
 
 void Async_Initialize(struct Async *);
 void Async_Finalize(const struct Async *);
 void Async_DispatchCalls(struct Async *);
 
 
-static inline int
+static inline bool
 Async_AddCall(struct Async *self, void (*function)(uintptr_t), uintptr_t argument)
 {
     assert(self != NULL);
     assert(function != NULL);
 
-    if (self->numberOfCalls == self->maxNumberOfCalls) {
-        if ((self->maxNumberOfCalls == 0 ? Vector_SetLength(&self->callVector, 1024)
-             : Vector_Expand(&self->callVector)) < 0) {
-            return -1;
+    if (self->numberOfCalls == Vector_GetLength(&self->callVector)) {
+        if (!Vector_SetLength(&self->callVector, self->numberOfCalls + 1, false)) {
+            return false;
         }
-
-        self->calls = Vector_GetElements(&self->callVector);
-        self->maxNumberOfCalls = Vector_GetLength(&self->callVector);
     }
 
-    self->calls[self->numberOfCalls++] = (struct __AsyncCall) {
+    struct __AsyncCall *calls = Vector_GetElements(&self->callVector);
+
+    calls[self->numberOfCalls++] = (struct __AsyncCall) {
         .function = function,
         .argument = argument
     };
 
-    return 0;
+    return true;
 }

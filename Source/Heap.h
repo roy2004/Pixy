@@ -7,13 +7,15 @@
 
 
 #include <stddef.h>
+#include <stdbool.h>
 #include <assert.h>
+
+#include "Vector.h"
 
 
 struct Heap
 {
-    struct HeapNode ***segmentTable;
-    int segmentTableLength;
+    struct Vector segmentVector;
     int numberOfSegments;
     int numberOfSlots;
     int numberOfNodes;
@@ -30,9 +32,9 @@ static inline struct HeapNode *Heap_GetTop(const struct Heap *);
 
 void Heap_Initialize(struct Heap *);
 void Heap_Finalize(const struct Heap *);
-int Heap_ShrinkToFit(struct Heap *);
-int Heap_InsertNode(struct Heap *, struct HeapNode *, int (*)(const struct HeapNode *
-                                                              , const struct HeapNode *));
+bool Heap_ShrinkToFit(struct Heap *);
+bool Heap_InsertNode(struct Heap *, struct HeapNode *, int (*)(const struct HeapNode *
+                                                               , const struct HeapNode *));
 void Heap_AdjustNode(struct Heap *, struct HeapNode *, int (*)(const struct HeapNode *
                                                                , const struct HeapNode *));
 void Heap_RemoveNode(struct Heap *, const struct HeapNode *, int (*)(const struct HeapNode *
@@ -48,5 +50,6 @@ Heap_GetTop(const struct Heap *self)
         return NULL;
     }
 
-    return self->segmentTable[0][0];
+    struct HeapNode ***segments = Vector_GetElements(&self->segmentVector);
+    return segments[0][0];
 }

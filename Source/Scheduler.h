@@ -7,6 +7,7 @@
 
 
 #include <setjmp.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <assert.h>
@@ -33,12 +34,12 @@ static inline int Scheduler_GetFiberCount(const struct Scheduler *);
 
 void Scheduler_Initialize(struct Scheduler *);
 void Scheduler_Finalize(const struct Scheduler *);
-int Scheduler_AddFiber(struct Scheduler *, void (*)(uintptr_t), uintptr_t);
-int Scheduler_AddAndRunFiber(struct Scheduler *, void (*)(uintptr_t), uintptr_t);
+bool Scheduler_AddFiber(struct Scheduler *, void (*)(uintptr_t), uintptr_t);
+bool Scheduler_AddAndRunFiber(struct Scheduler *, void (*)(uintptr_t), uintptr_t);
 void Scheduler_YieldCurrentFiber(struct Scheduler *);
 void Scheduler_SuspendCurrentFiber(struct Scheduler *);
 void Scheduler_ResumeFiber(struct Scheduler *, struct Fiber *);
-void Scheduler_ExitCurrentFiber(struct Scheduler *) NORETURN;
+NORETURN void Scheduler_ExitCurrentFiber(struct Scheduler *);
 void Scheduler_Tick(struct Scheduler *);
 
 
