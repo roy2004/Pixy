@@ -50,24 +50,42 @@ Pipe2(int *fds, int flags)
 ssize_t
 Read(int fd, void *buffer, size_t bufferSize, int timeout)
 {
-    struct iovec vector = {
-        .iov_base = buffer,
-        .iov_len = bufferSize
-    };
+    for (;;) {
+        ssize_t numberOfBytes;
 
-    return ReadV(fd, &vector, 1, timeout);
+        do {
+            numberOfBytes = read(fd, buffer, bufferSize);
+        } while (numberOfBytes < 0 && errno == EINTR);
+
+        if (numberOfBytes >= 0) {
+            return numberOfBytes;
+        }
+
+        if ((errno != EAGAIN && errno != EWOULDBLOCK) || !WaitForFD(fd, IOReadable, timeout)) {
+            return -1;
+        }
+    }
 }
 
 
 ssize_t
 Write(int fd, const void *data, size_t dataSize, int timeout)
 {
-    struct iovec vector = {
-        .iov_base = (void *)data,
-        .iov_len = dataSize
-    };
+    for (;;) {
+        ssize_t numberOfBytes;
 
-    return WriteV(fd, &vector, 1, timeout);
+        do {
+            numberOfBytes = write(fd, data, dataSize);
+        } while (numberOfBytes < 0 && errno == EINTR);
+
+        if (numberOfBytes >= 0) {
+            return numberOfBytes;
+        }
+
+        if ((errno != EAGAIN && errno != EWOULDBLOCK) || !WaitForFD(fd, IOWritable, timeout)) {
+            return -1;
+        }
+    }
 }
 
 
@@ -166,44 +184,42 @@ Connect(int fd, const struct sockaddr *name, socklen_t nameSize, int timeout)
 ssize_t
 Recv(int fd, void *buffer, size_t bufferSize, int flags, int timeout)
 {
-    struct iovec vector = {
-        .iov_base = buffer,
-        .iov_len = bufferSize
-    };
+    for (;;) {
+        ssize_t numberOfBytes;
 
-    struct msghdr message = {
-        .msg_name = NULL,
-        .msg_namelen = 0,
-        .msg_iov = &vector,
-        .msg_iovlen = 1,
-        .msg_control = NULL,
-        .msg_controllen = 0,
-        .msg_flags = 0
-    };
+        do {
+            numberOfBytes = recv(fd, buffer, bufferSize, flags);
+        } while (numberOfBytes < 0 && errno == EINTR);
 
-    return RecvMsg(fd, &message, flags, timeout);
+        if (numberOfBytes >= 0) {
+            return numberOfBytes;
+        }
+
+        if ((errno != EAGAIN && errno != EWOULDBLOCK) || !WaitForFD(fd, IOReadable, timeout)) {
+            return -1;
+        }
+    }
 }
 
 
 ssize_t
 Send(int fd, const void *data, size_t dataSize, int flags, int timeout)
 {
-    struct iovec vector = {
-        .iov_base = (void *)data,
-        .iov_len = dataSize
-    };
+    for (;;) {
+        ssize_t numberOfBytes;
 
-    struct msghdr message = {
-        .msg_name = NULL,
-        .msg_namelen = 0,
-        .msg_iov = &vector,
-        .msg_iovlen = 1,
-        .msg_control = NULL,
-        .msg_controllen = 0,
-        .msg_flags = 0
-    };
+        do {
+            numberOfBytes = send(fd, data, dataSize, flags);
+        } while (numberOfBytes < 0 && errno == EINTR);
 
-    return SendMsg(fd, &message, flags, timeout);
+        if (numberOfBytes >= 0) {
+            return numberOfBytes;
+        }
+
+        if ((errno != EAGAIN && errno != EWOULDBLOCK) || !WaitForFD(fd, IOWritable, timeout)) {
+            return -1;
+        }
+    }
 }
 
 
@@ -211,24 +227,21 @@ ssize_t
 RecvFrom(int fd, void *buffer, size_t bufferSize, int flags, struct sockaddr *name
          , socklen_t *nameSize, int timeout)
 {
-    struct iovec vector = {
-        .iov_base = buffer,
-        .iov_len = bufferSize
-    };
+    for (;;) {
+        ssize_t numberOfBytes;
 
-    struct msghdr message = {
-        .msg_name = name,
-        .msg_namelen = *nameSize,
-        .msg_iov = &vector,
-        .msg_iovlen = 1,
-        .msg_control = NULL,
-        .msg_controllen = 0,
-        .msg_flags = 0
-    };
+        do {
+            numberOfBytes = recvfrom(fd, buffer, bufferSize, flags, name, nameSize);
+        } while (numberOfBytes < 0 && errno == EINTR);
 
-    ssize_t numberOfBytes = RecvMsg(fd, &message, flags, timeout);
-    *nameSize = message.msg_namelen;
-    return numberOfBytes;
+        if (numberOfBytes >= 0) {
+            return numberOfBytes;
+        }
+
+        if ((errno != EAGAIN && errno != EWOULDBLOCK) || !WaitForFD(fd, IOReadable, timeout)) {
+            return -1;
+        }
+    }
 }
 
 
@@ -236,22 +249,21 @@ ssize_t
 SendTo(int fd, const void *data, size_t dataSize, int flags, const struct sockaddr *name
        , socklen_t nameSize, int timeout)
 {
-    struct iovec vector = {
-        .iov_base = (void *)data,
-        .iov_len = dataSize
-    };
+    for (;;) {
+        ssize_t numberOfBytes;
 
-    struct msghdr message = {
-        .msg_name = (struct sockaddr *)name,
-        .msg_namelen = nameSize,
-        .msg_iov = &vector,
-        .msg_iovlen = 1,
-        .msg_control = NULL,
-        .msg_controllen = 0,
-        .msg_flags = 0
-    };
+        do {
+            numberOfBytes = sendto(fd, data, dataSize, flags, name, nameSize);
+        } while (numberOfBytes < 0 && errno == EINTR);
 
-    return SendMsg(fd, &message, flags, timeout);
+        if (numberOfBytes >= 0) {
+            return numberOfBytes;
+        }
+
+        if ((errno != EAGAIN && errno != EWOULDBLOCK) || !WaitForFD(fd, IOWritable, timeout)) {
+            return -1;
+        }
+    }
 }
 
 
