@@ -7,12 +7,14 @@
 
 #include <stddef.h>
 
+#include "List.h"
 #include "Scheduler.h"
+#include "Utility.h"
 
 
-struct __EventWaiter
+struct EventWaiter
 {
-    struct __EventWaiter *prev;
+    struct ListItem listItem;
     struct Fiber *fiber;
 };
 
@@ -27,7 +29,7 @@ Event_Initialize(struct Event *self)
         return;
     }
 
-    self->lastWaiter = NULL;
+    List_Initialize(LIST_HEAD(self->waiterList));
 }
 
 
@@ -38,18 +40,14 @@ Event_Trigger(struct Event *self)
         return;
     }
 
-    struct __EventWaiter *waiter = self->lastWaiter;
-
-    if (waiter == NULL) {
+    if (List_IsEmpty(LIST_HEAD(self->waiterList))) {
         return;
     }
 
-    self->lastWaiter = NULL;
-
-    do {
-        Scheduler_ResumeFiber(&Scheduler, waiter->fiber);
-        waiter = waiter->prev;
-    } while (waiter != NULL);
+    struct EventWaiter *waiter = CONTAINER_OF(List_GetFront(LIST_HEAD(self->waiterList))
+                                              , struct EventWaiter, listItem);
+    ListItem_Remove(&waiter->listItem);
+    Scheduler_ResumeFiber(&Scheduler, waiter->fiber);
 }
 
 
@@ -60,11 +58,10 @@ Event_WaitFor(struct Event *self)
         return;
     }
 
-    struct __EventWaiter waiter = {
+    struct EventWaiter waiter = {
         .fiber = Scheduler_GetCurrentFiber(&Scheduler)
     };
 
-    waiter.prev = self->lastWaiter;
-    self->lastWaiter = &waiter;
+    List_InsertBack(LIST_HEAD(self->waiterList), &waiter.listItem);
     Scheduler_SuspendCurrentFiber(&Scheduler);
 }

@@ -10,12 +10,9 @@
 extern "C" {
 #endif
 
-struct __EventWaiter;
-
-
 struct Event
 {
-    struct __EventWaiter *lastWaiter;
+    void *waiterList[2];
 };
 
 

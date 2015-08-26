@@ -11,6 +11,9 @@
 #include <stdbool.h>
 
 
+#define LIST_HEAD(list) \
+    ((struct ListItem *)(list))
+
 #define FOR_EACH_LIST_ITEM(listItem, listHead) \
     assert((listHead) != NULL);                \
     for ((listItem) = (listHead)->next; (listItem) != (listHead); (listItem) = (listItem)->next)
