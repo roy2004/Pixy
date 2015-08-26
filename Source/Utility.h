@@ -19,7 +19,13 @@
     (((a) > (b)) - ((a) < (b)))
 
 #define STRINGIZE(text) \
-    __STRINGIZE(text)
+    __STRINGIZE2(text)
 
-#define __STRINGIZE(text) \
+#define __STRINGIZE2(text) \
     #text
+
+#define STATIC_ASSERT(expression)          \
+    do {                                   \
+        char dummy[(expression) ? 1 : -1]; \
+        (void)dummy;                       \
+    } while (0)
