@@ -6,29 +6,25 @@
 #pragma once
 
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <assert.h>
-#include <stdbool.h>
 
 
 #define LIST_HEAD(list) \
     ((struct ListItem *)(list))
 
 #define FOR_EACH_LIST_ITEM(listItem, listHead) \
-    assert((listHead) != NULL);                \
     for ((listItem) = (listHead)->next; (listItem) != (listHead); (listItem) = (listItem)->next)
 
 #define FOR_EACH_LIST_ITEM_REVERSE(listItem, listHead) \
-    assert((listHead) != NULL);                        \
     for ((listItem) = (listHead)->prev; (listItem) != (listHead); (listItem) = (listItem)->prev)
 
 #define FOR_EACH_LIST_ITEM_SAFE(listItem, temp, listHead)                                   \
-    assert((listHead) != NULL);                                                             \
     for ((listItem) = (listHead)->next, (temp) = (listItem)->next; (listItem) != (listHead) \
          ; (listItem) = (temp), (temp) = (listItem)->next)
 
 #define FOR_EACH_LIST_ITEM_SAFE_REVERSE(listItem, temp, listHead)                           \
-    assert((listHead) != NULL);                                                             \
     for ((listItem) = (listHead)->prev, (temp) = (listItem)->prev; (listItem) != (listHead) \
          ; (listItem) = (temp), (temp) = (listItem)->prev)
 
