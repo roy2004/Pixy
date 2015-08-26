@@ -14,33 +14,33 @@
 
 
 #ifdef NDEBUG
-#define LOG_DEBUG(FORMAT, ...) \
+#define LOG_DEBUG(format, ...) \
     (void)0
 #else
-#define LOG_DEBUG(FORMAT, ...) \
-    __LOG(Debug, FORMAT, ##__VA_ARGS__)
+#define LOG_DEBUG(format, ...) \
+    __LOG(Debug, format, ##__VA_ARGS__)
 #endif
 
-#define LOG_INFORMATION(FORMAT, ...) \
-    __LOG(Information, FORMAT, ##__VA_ARGS__)
+#define LOG_INFORMATION(format, ...) \
+    __LOG(Information, format, ##__VA_ARGS__)
 
-#define LOG_WARNING(FORMAT, ...) \
-    __LOG(Warning, FORMAT, ##__VA_ARGS__)
+#define LOG_WARNING(format, ...) \
+    __LOG(Warning, format, ##__VA_ARGS__)
 
-#define LOG_ERROR(FORMAT, ...) \
-    __LOG(Error, FORMAT, ##__VA_ARGS__)
+#define LOG_ERROR(format, ...) \
+    __LOG(Error, format, ##__VA_ARGS__)
 
-#define LOG_FATAL_ERROR(FORMAT, ...)          \
-    __LOG(FatalError, FORMAT, ##__VA_ARGS__); \
+#define LOG_FATAL_ERROR(format, ...)          \
+    __LOG(FatalError, format, ##__VA_ARGS__); \
     abort()
 
-#define __LOG(LEVEL, FORMAT, ...)                                                               \
+#define __LOG(level, format, ...)                                                               \
     do {                                                                                        \
-        if (Logging##LEVEL < GetLoggingLevel()) {                                               \
+        if (Logging##level < GetLoggingLevel()) {                                               \
             break;                                                                              \
         }                                                                                       \
                                                                                                 \
-        fprintf(stderr, "(Pixy) " #LEVEL ": " __FILE__ ":" STRINGIZE(__LINE__) ": " FORMAT "\n" \
+        fprintf(stderr, "(Pixy) " #level ": " __FILE__ ":" STRINGIZE(__LINE__) ": " format "\n" \
                 , ##__VA_ARGS__);                                                               \
     } while (0)
 
