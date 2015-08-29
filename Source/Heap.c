@@ -40,8 +40,8 @@ Heap_Finalize(const struct Heap *self)
         int i = self->numberOfSegments - 1;
 
         do {
-            free(segments[i--]);
-        } while (i >= 0);
+            free(segments[i]);
+        } while (--i >= 0);
     }
 
     Vector_Finalize(&self->segmentVector);
@@ -60,8 +60,8 @@ Heap_ShrinkToFit(struct Heap *self)
         int i = self->numberOfSegments - 1;
 
         do {
-            free(segments[i--]);
-        } while (i >= numberOfSegments);
+            free(segments[i]);
+        } while (--i >= numberOfSegments);
 
         self->numberOfSegments = numberOfSegments;
         self->numberOfSlots = numberOfSegments * (unsigned int)HEAP_SEGMENT_LENGTH;
