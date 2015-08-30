@@ -7,6 +7,10 @@
 
 #include <stdlib.h>
 
+#if defined USE_VALGRIND
+#include <valgrind/valgrind.h>
+#endif
+
 #include "Utility.h"
 
 
@@ -16,7 +20,11 @@
 struct Fiber
 {
     struct ListItem listItem;
-    void *stack;
+    char *stack;
+    size_t stackSize;
+#if defined USE_VALGRIND
+    int stackID;
+#endif
     jmp_buf *context;
     void (*function)(uintptr_t);
     uintptr_t argument;
@@ -231,14 +239,14 @@ Scheduler_SwitchToFiber(struct Scheduler *self, struct Fiber *fiber)
             "pushl\t$0\n\t"
             "jmpl\t*%3"
             :
-            : "r"(fiber->stack), "r"(self), "r"(fiber), "r"(Scheduler_FiberStart)
+            : "r"(fiber->stack + fiber->stackSize), "r"(self), "r"(fiber), "r"(Scheduler_FiberStart)
 #elif defined __x86_64__
             "movq\t$0, %%rbp\n\t"
             "movq\t%0, %%rsp\n\t"
             "pushq\t$0\n\t"
             "jmpq\t*%3"
             :
-            : "r"(fiber->stack), "D"(self), "S"(fiber), "r"(Scheduler_FiberStart)
+            : "r"(fiber->stack + fiber->stackSize), "D"(self), "S"(fiber), "r"(Scheduler_FiberStart)
 #else
 #error architecture not supported
 #endif
@@ -270,29 +278,36 @@ Scheduler_SwitchTo(struct Scheduler *self)
 static struct Fiber *
 Fiber_Allocate(void)
 {
-    struct Fiber *fiber = malloc(FIBER_SIZE);
+    char *region = malloc(FIBER_SIZE);
 
-    if (fiber == NULL) {
+    if (region == NULL) {
         return NULL;
     }
 
 #if defined __i386__ || defined __x86_64__
-    fiber = (struct Fiber *)((char *)fiber + FIBER_SIZE - sizeof *fiber);
-    fiber->stack = fiber;
+    struct Fiber *self = (struct Fiber *)(region + FIBER_SIZE - sizeof *self);
+    self->stack = region;
+    self->stackSize = FIBER_SIZE - sizeof *self;
 #else
 #error architecture not supported
 #endif
-    return fiber;
+#if defined USE_VALGRIND
+    self->stackID = VALGRIND_STACK_REGISTER(self->stack, self->stack + self->stackSize);
+#endif
+    return self;
 }
 
 
 static void
-Fiber_Free(struct Fiber *fiber)
+Fiber_Free(struct Fiber *self)
 {
+#if defined USE_VALGRIND
+    VALGRIND_STACK_DEREGISTER(self->stackID);
+#endif
 #if defined __i386__ || defined __x86_64__
-    fiber = (struct Fiber *)((char *)fiber + sizeof *fiber - FIBER_SIZE);
+    char *region = (char *)self + sizeof *self - FIBER_SIZE;
 #else
 #error architecture not supported
 #endif
-    free(fiber);
+    free(region);
 }

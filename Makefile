@@ -14,6 +14,7 @@ OBJECTS = Async.o\
           Vector.o
 CPPFLAGS = -iquote Include -MMD -MT $@ -MF Build/$*.d -D_GNU_SOURCE
 #CPPFLAGS += -DNDEBUG
+#CPPFLAGS += -DUSE_VALGRIND
 CFLAGS = -std=c99 -Wall -Wextra -Werror
 #CFLAGS += -O2
 ARFLAGS = rc
