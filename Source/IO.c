@@ -441,9 +441,9 @@ static void
 WaitForFDCallback2(uintptr_t argument)
 {
     struct {
+        struct Fiber *fiber;
         struct IOWatch ioWatch;
         struct Timeout timeout;
-        struct Fiber *fiber;
         bool ok;
         int errorNumber;
     } *context = (void *)argument;
@@ -459,9 +459,9 @@ static void
 WaitForFDCallback3(uintptr_t argument)
 {
     struct {
+        struct Fiber *fiber;
         struct IOWatch ioWatch;
         struct Timeout timeout;
-        struct Fiber *fiber;
         bool ok;
         int errorNumber;
     } *context = (void *)argument;
