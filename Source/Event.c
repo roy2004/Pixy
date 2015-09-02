@@ -34,6 +34,20 @@ Event_Initialize(struct Event *self)
 
 
 void
+Event_WaitFor(struct Event *self)
+{
+    if (self == NULL) {
+        return;
+    }
+
+    struct EventWaiter waiter;
+    waiter.fiber = Scheduler_GetCurrentFiber(&Scheduler);
+    List_InsertBack(LIST_HEAD(self->waiterList), &waiter.listItem);
+    Scheduler_SuspendCurrentFiber(&Scheduler);
+}
+
+
+void
 Event_Trigger(struct Event *self)
 {
     if (self == NULL) {
@@ -53,20 +67,4 @@ Event_Trigger(struct Event *self)
     } while (waiterListItem != LIST_HEAD(self->waiterList));
 
     List_Initialize(LIST_HEAD(self->waiterList));
-}
-
-
-void
-Event_WaitFor(struct Event *self)
-{
-    if (self == NULL) {
-        return;
-    }
-
-    struct EventWaiter waiter = {
-        .fiber = Scheduler_GetCurrentFiber(&Scheduler)
-    };
-
-    List_InsertBack(LIST_HEAD(self->waiterList), &waiter.listItem);
-    Scheduler_SuspendCurrentFiber(&Scheduler);
 }

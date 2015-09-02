@@ -17,8 +17,8 @@ struct Event
 
 
 void Event_Initialize(struct Event *);
-void Event_Trigger(struct Event *);
 void Event_WaitFor(struct Event *);
+void Event_Trigger(struct Event *);
 
 #if defined __cplusplus
 } // extern "C"
