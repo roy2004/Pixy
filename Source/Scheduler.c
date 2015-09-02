@@ -166,8 +166,18 @@ Scheduler_SuspendCurrentFiber(struct Scheduler *self)
 void
 Scheduler_ResumeFiber(struct Scheduler *self, struct Fiber *fiber)
 {
-    assert(self != NULL);
+    assert(self != NULL && self->activeFiber != fiber);
+    assert(fiber != NULL);
     List_InsertBack(&self->readyFiberListHead, &fiber->listItem);
+}
+
+
+void
+Scheduler_UnresumeFiber(struct Scheduler *self, struct Fiber *fiber)
+{
+    assert(self != NULL && self->activeFiber != fiber);
+    assert(fiber != NULL);
+    ListItem_Remove(&fiber->listItem);
 }
 
 

@@ -9,6 +9,7 @@ OBJECTS = Async.o\
           MemoryPool.o\
           Runtime.o\
           Scheduler.o\
+          Semaphore.o\
           ThreadPool.o\
           Timer.o\
           Vector.o

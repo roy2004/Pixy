@@ -39,6 +39,7 @@ bool Scheduler_AddAndRunFiber(struct Scheduler *, void (*)(uintptr_t), uintptr_t
 void Scheduler_YieldCurrentFiber(struct Scheduler *);
 void Scheduler_SuspendCurrentFiber(struct Scheduler *);
 void Scheduler_ResumeFiber(struct Scheduler *, struct Fiber *);
+void Scheduler_UnresumeFiber(struct Scheduler *, struct Fiber *);
 NORETURN void Scheduler_ExitCurrentFiber(struct Scheduler *);
 void Scheduler_Tick(struct Scheduler *);
 

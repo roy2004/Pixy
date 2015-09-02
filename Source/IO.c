@@ -333,13 +333,12 @@ GetAddrInfo(const char *hostName, const char *serviceName, const struct addrinfo
         const struct addrinfo *hints;
         struct addrinfo **result;
         int errorCode;
-    } context = {
-        .hostName = hostName,
-        .serviceName = serviceName,
-        .hints = hints,
-        .result = result
-    };
+    } context;
 
+    context.hostName = hostName;
+    context.serviceName = serviceName;
+    context.hints = hints;
+    context.result = result;
     DoWork(GetAddrInfoWrapper, (uintptr_t)&context);
     return context.errorCode;
 }
@@ -358,16 +357,15 @@ GetNameInfo(const struct sockaddr *name, socklen_t nameSize, char *hostName, soc
         socklen_t serviceNameSize;
         int flags;
         int errorCode;
-    } context = {
-        .name = name,
-        .nameSize = nameSize,
-        .hostName = hostName,
-        .hostNameSize = hostNameSize,
-        .serviceName = serviceName,
-        .serviceNameSize = serviceNameSize,
-        .flags = flags
-    };
+    } context;
 
+    context.name = name;
+    context.nameSize = nameSize;
+    context.hostName = hostName;
+    context.hostNameSize = hostNameSize;
+    context.serviceName = serviceName;
+    context.serviceNameSize = serviceNameSize;
+    context.flags = flags;
     DoWork(GetNameInfoWrapper, (uintptr_t)&context);
     return context.errorCode;
 }
@@ -378,11 +376,11 @@ WaitForFD(int fd, enum IOCondition ioCondition, int timeout)
 {
     if (timeout < 0) {
         struct {
-            struct Fiber *fiber;
             struct IOWatch ioWatch;
-        } context = {
-            .fiber = Scheduler_GetCurrentFiber(&Scheduler)
-        };
+            struct Fiber *fiber;
+        } context;
+
+        context.fiber = Scheduler_GetCurrentFiber(&Scheduler);
 
         if (!IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, ioCondition, (uintptr_t)&context
                                , WaitForFDCallback1)) {
@@ -392,14 +390,14 @@ WaitForFD(int fd, enum IOCondition ioCondition, int timeout)
         Scheduler_SuspendCurrentFiber(&Scheduler);
     } else {
         struct {
-            struct Fiber *fiber;
             struct IOWatch ioWatch;
             struct Timeout timeout;
+            struct Fiber *fiber;
             bool ok;
             int errorNumber;
-        } context = {
-            .fiber = Scheduler_GetCurrentFiber(&Scheduler)
-        };
+        } context;
+
+        context.fiber = Scheduler_GetCurrentFiber(&Scheduler);
 
         if (!IOPoller_SetWatch(&IOPoller, &context.ioWatch, fd, ioCondition, (uintptr_t)&context
                                , WaitForFDCallback2)) {
@@ -428,8 +426,8 @@ static void
 WaitForFDCallback1(uintptr_t argument)
 {
     struct {
-        struct Fiber *fiber;
         struct IOWatch ioWatch;
+        struct Fiber *fiber;
     } *context = (void *)argument;
 
     IOPoller_ClearWatch(&IOPoller, &context->ioWatch);
@@ -441,9 +439,9 @@ static void
 WaitForFDCallback2(uintptr_t argument)
 {
     struct {
-        struct Fiber *fiber;
         struct IOWatch ioWatch;
         struct Timeout timeout;
+        struct Fiber *fiber;
         bool ok;
         int errorNumber;
     } *context = (void *)argument;
