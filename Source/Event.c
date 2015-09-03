@@ -54,17 +54,12 @@ Event_Trigger(struct Event *self)
         return;
     }
 
-    struct ListItem *waiterListItem = List_GetFront(LIST_HEAD(self->waiterList));
-
-    if (waiterListItem == LIST_HEAD(self->waiterList)) {
+    if (List_IsEmpty(LIST_HEAD(self->waiterList))) {
         return;
     }
 
-    do {
-        Scheduler_ResumeFiber(&Scheduler, CONTAINER_OF(waiterListItem, struct EventWaiter, listItem)
-                                          ->fiber);
-        waiterListItem = ListItem_GetNext(waiterListItem);
-    } while (waiterListItem != LIST_HEAD(self->waiterList));
-
-    List_Initialize(LIST_HEAD(self->waiterList));
+    struct EventWaiter *waiter = CONTAINER_OF(List_GetFront(LIST_HEAD(self->waiterList))
+                                              , struct EventWaiter, listItem);
+    ListItem_Remove(&waiter->listItem);
+    Scheduler_ResumeFiber(&Scheduler, waiter->fiber);
 }
