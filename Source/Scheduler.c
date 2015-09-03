@@ -177,6 +177,7 @@ Scheduler_UnresumeFiber(struct Scheduler *self, struct Fiber *fiber)
 {
     assert(self != NULL && self->activeFiber != fiber);
     assert(fiber != NULL);
+    (void)self;
     ListItem_Remove(&fiber->listItem);
 }
 
