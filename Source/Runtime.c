@@ -45,11 +45,10 @@ main(int argc, char **argv)
         int argc;
         char **argv;
         int status;
-    } context = {
-        .argc = argc,
-        .argv = argv
-    };
+    } context;
 
+    context.argc = argc;
+    context.argv = argv;
     Scheduler_AddFiber(&Scheduler, FiberMainWrapper, (uintptr_t)&context);
     Loop();
     ThreadPool_Stop(&ThreadPool);
